@@ -68,8 +68,7 @@ jobs:
               "Setup.bat",
               "Uninstall.bat",
               "tray.ini",
-              "icon.ico",
-              "icon.png"
+              "icon.ico"
           )
 
           foreach ($file in $requiredFiles) {
