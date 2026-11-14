@@ -8,11 +8,14 @@ Direct3D 11 rendering workload twice per second. There is no visible render
 window. The intention is to discourage some GPUs/drivers from entering their
 lowest idle states.
 
-IMPORTANT: This is an experiment/workaround, NOT a repair for a faulty GPU,
+> [!NOTE]
+> This is an experiment/workaround, NOT a repair for a faulty GPU,
 power supply, motherboard, driver, firmware, or PCIe connection. It cannot
 promise to prevent TDRs, freezes, or restarts. It may increase idle power use.
 Stop it if temperatures, power use, noise, or stability get worse. Do not use
 this tool instead of diagnosing a recurring hardware fault.
+
+<img width="1770" height="582" alt="image" src="https://github.com/user-attachments/assets/d811fc98-6f6b-4121-bcc3-3305d5d648ec" />
 
 
 Idea
