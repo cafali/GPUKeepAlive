@@ -68,3 +68,15 @@ folder.
 Requirements
 ------------------------------------
 Windows 10/11 x64, a working Direct3D 11-capable graphics driver.
+
+PERSONAL OBSERVATION – ON MY PREVIOUS HARDWARE
+------------------------------------
+My problems started after upgrading to a newer GPU. Since then, I've been experiencing random system freezes and restarts related to NVLDDMKM.SYS TDR errors. What makes this issue particularly strange is that it almost never happens while gaming or running GPU-intensive applications. Instead, it happens during everyday activities such as watching YouTube or Twitch, browsing the internet, or simply leaving the PC idle.
+
+I've spent countless hours troubleshooting, replacing hardware, testing different GPUs and power supplies, reinstalling Windows, changing drivers, updating BIOS versions, and trying various software-based fixes. Nothing has permanently solved the problem.
+
+Based on my personal observations and my NVLDDMKM.SYS scenario, I suspect the problem might be related to how NVIDIA GPUs handle certain low-power states on my particular hardware configuration. The system appears to be stable under higher GPU loads but becomes unpredictable when the GPU is barely being used.
+
+This observation became the starting point for this project: instead of continuing to troubleshoot drivers and hardware endlessly, I wanted to try a different approach – keeping the GPU slightly active in the background to potentially avoid problematic low-power transitions.
+
+**My hope is that this project can help others experiencing the same frustrating issue. If you're dealing with similar crashes, I hope this little tool makes a difference in your case and saves you some of the time, frustration, and endless troubleshooting I've been through.**
