@@ -91,6 +91,6 @@ This observation became the starting point for this project: instead of continui
 
 **My hope is that this project can help others experiencing the same frustrating issue. If you're dealing with similar crashes, I hope this little tool makes a difference in your case and saves you some of the time, frustration, and endless troubleshooting I've been through.**
 
-PRIVACY NOTICE
+Privacy Notice
 ------------------------------------
 This software is fully open source and does not connect to the internet, communicate with external servers, or collect, store, or transmit any personal information or user data. Everything runs locally on your computer. No tracking, no telemetry, no analytics, and no hidden background communication.
