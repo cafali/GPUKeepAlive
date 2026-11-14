@@ -50,6 +50,9 @@ Run GpuKeepAlive.exe. It starts in the background. If tray.ini says Tray=1,
 a notification-area icon is shown. Right-click it for Info or Exit. Info opens
 the README file. If Tray=0, it runs without a tray icon; use Task Manager to exit it.
 
+<img width="1046" height="160" alt="image" src="https://github.com/user-attachments/assets/91a7a566-66cf-4e25-b1fc-fb55bf7ec5c9" />
+
+
 tray.ini
 ------------------------------------
 [General]
