@@ -63,7 +63,6 @@ jobs:
 
           $requiredFiles = @(
               "build/Release/GpuKeepAlive.exe",
-              "README.txt",
               "LICENSE",
               "Setup.bat",
               "Uninstall.bat",
