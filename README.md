@@ -29,7 +29,7 @@ Run
 ------------------------------------
 Run GpuKeepAlive.exe. It starts in the background. If tray.ini says Tray=1,
 a notification-area icon is shown. Right-click it for Info or Exit. Info opens
-this file. If Tray=0, it runs without a tray icon; use Task Manager to exit it.
+the README file. If Tray=0, it runs without a tray icon; use Task Manager to exit it.
 
 tray.ini
 ------------------------------------
@@ -49,6 +49,8 @@ Startup setup
 4. Setup copies the app to %ProgramData%\GpuKeepAlive and creates a Task
    Scheduler logon task using the interactive logged-in user (not SYSTEM).
 5. setup.log records installation path, time, and tray selection.
+
+<img width="1282" height="112" alt="image" src="https://github.com/user-attachments/assets/814b778d-b8c0-4e17-a091-e923aec0fb2e" />
 
 Run Uninstall.bat as administrator to remove the scheduled task and installed
 folder. 
