@@ -74,19 +74,18 @@ jobs:
               if (!(Test-Path $file)) {
                   throw "Required package file missing: $file"
               }
+
               Copy-Item $file package/
           }
 
-          Compress-Archive `
-              -Path package/* `
-              -DestinationPath GpuKeepAlive-Windows-x64.zip `
-              -Force
+          Write-Host "Portable package contents:"
+          Get-ChildItem package
 
-      # Upload portable ZIP
+      # Upload package directly (no manually created ZIP)
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: GpuKeepAlive-Windows-x64
-          path: GpuKeepAlive-Windows-x64.zip
+          path: package/
           if-no-files-found: error
           retention-days: 30
