@@ -67,8 +67,7 @@ jobs:
               "LICENSE",
               "Setup.bat",
               "Uninstall.bat",
-              "tray.ini",
-              "icon.ico"
+              "tray.ini"
           )
 
           foreach ($file in $requiredFiles) {
