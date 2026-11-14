@@ -14,6 +14,14 @@ promise to prevent TDRs, freezes, or restarts. It may increase idle power use.
 Stop it if temperatures, power use, noise, or stability get worse. Do not use
 this tool instead of diagnosing a recurring hardware fault.
 
+
+Idea
+------------------------------------
+This software was created to address a frustrating and difficult-to-diagnose NVIDIA GPU stability issue, commonly associated with nvlddmkm.sys TDR errors. After extensive hardware replacements, driver changes, BIOS updates, and software troubleshooting failed to resolve random system freezes during low-power scenarios, a different approach was needed. The core idea is to develop a lightweight background application that keeps the GPU in a more stable power state by maintaining minimal GPU activity through a virtually invisible DirectX 3D workload. The application is designed to run automatically in the background, consume as few system resources as possible, and require virtually no user interaction. Ultimately, the goal is to provide a simple, portable, open-source solution that may prevent GPU driver resets caused by problematic low-power state transitions.
+
+> [!CAUTION]
+>This solution is not guaranteed to work for everyone, as **nvlddmkm.sys** TDR errors can have different causes and occur under different conditions, including gaming and high GPU loads. This approach is specifically designed for users experiencing the opposite scenario: GPU crashes during low-power states, idle usage, or lightweight tasks such as watching videos, browsing the web, or using the desktop normally. The software aims to address this particular behavior by preventing the GPU from entering potentially problematic lowest-power states.
+
 Run
 ------------------------------------
 Run GpuKeepAlive.exe. It starts in the background. If tray.ini says Tray=1,
@@ -37,7 +45,9 @@ Startup setup
 5. setup.log records installation path, time, and tray selection.
 
 Run Uninstall.bat as administrator to remove the scheduled task and installed
-folder. The portable executable can also be run directly without setup.
+folder. 
+> [!NOTE]
+>The portable executable can also be run directly without setup.
 
 Requirements
 ------------------------------------
