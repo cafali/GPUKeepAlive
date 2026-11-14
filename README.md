@@ -18,14 +18,14 @@ WHEN TO USE?
 >Not intended for this scenario. This tool is unlikely to help if your crashes happen mainly during gaming or high GPU loads.
 
 
-Why GpuKeepAlive?
+Why GPUKeepAlive?
 ------------------------------------
-GpuKeepAlive is a small Windows background utility. It creates a tiny off-screen
+GPUKeepAlive is a small Windows background utility. It creates a tiny off-screen
 Direct3D 11 rendering workload once every 2 minutes. There is no visible render
 window. The intention is to discourage some GPUs/drivers from entering their
 lowest idle states.
 
-Download GPUKeepAlive from GitHub: https://github.com/cafali/GpuKeepAlive/releases
+Download GPUKeepAlive from GitHub: https://github.com/cafali/GPUKeepAlive/releases
 
 > [!NOTE]
 > This is an experiment/workaround, NOT a repair for a faulty GPU,
@@ -46,7 +46,7 @@ This software was created to address a frustrating and difficult-to-diagnose NVI
 
 Run
 ------------------------------------
-Run GpuKeepAlive.exe. It starts in the background. If tray.ini says Tray=1,
+Run GPUKeepAlive.exe. It starts in the background. If tray.ini says Tray=1,
 a notification-area icon is shown. Right-click it for Info or Exit. Info opens
 the README file. If Tray=0, it runs without a tray icon; use Task Manager to exit it.
 
@@ -65,10 +65,10 @@ Set Tray=1 to show the icon, or Tray=0 to hide it. Restart the app after edits.
 
 Startup setup
 ------------------------------------
-1. Build the application (or obtain a prebuilt GpuKeepAlive.exe).
+1. Build the application (or obtain a prebuilt GPUKeepAlive.exe).
 2. Right-click Setup.bat and choose Run as administrator.
 3. Choose 1 for tray icon or 0 for hidden background operation.
-4. Setup copies the app to %ProgramData%\GpuKeepAlive and creates a Task
+4. Setup copies the app to %ProgramData%\GPUKeepAlive and creates a Task
    Scheduler logon task using the interactive logged-in user (not SYSTEM).
 5. setup.log records installation path, time, and tray selection.
 
