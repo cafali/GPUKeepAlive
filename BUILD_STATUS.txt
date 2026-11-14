@@ -1,0 +1,10 @@
+Build status: SOURCE PACKAGE ONLY
+
+This archive was assembled in a Linux environment without the Windows SDK,
+MSVC, or a MinGW-w64 Windows toolchain. Therefore GpuKeepAlive.exe could not
+be compiled or runtime-tested here. Build.bat is provided for Windows with
+Visual Studio 2022 C++ Desktop workload and CMake installed.
+
+Do not treat this package as a compiled release. After running Build.bat on
+Windows, verify the produced executable and test on a non-critical system
+before enabling startup.

@@ -1,0 +1,94 @@
+
+name: GpuKeepAlive Windows Build
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -S . -B build -A x64
+
+      - name: Compile Release
+        run: cmake --build build --config Release --parallel
+
+      # Verify embedded Windows version information
+      - name: Verify EXE metadata
+        shell: pwsh
+        run: |
+          $exe = "build/Release/GpuKeepAlive.exe"
+
+          if (!(Test-Path $exe)) {
+              throw "Executable not found: $exe"
+          }
+
+          $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo(
+              (Resolve-Path $exe).Path
+          )
+
+          Write-Host "========== GPUKEEPALIVE METADATA =========="
+          Write-Host "Company:        $($info.CompanyName)"
+          Write-Host "Description:    $($info.FileDescription)"
+          Write-Host "File Version:   $($info.FileVersion)"
+          Write-Host "Product:        $($info.ProductName)"
+          Write-Host "Product Version:$($info.ProductVersion)"
+          Write-Host "Copyright:      $($info.LegalCopyright)"
+          Write-Host "==========================================="
+
+          if ($info.FileVersion -ne "1.0.0.0") {
+              throw "VERSIONINFO missing or incorrect!"
+          }
+
+          if ($info.ProductName -ne "GpuKeepAlive") {
+              throw "ProductName missing or incorrect!"
+          }
+
+          Write-Host "EXE metadata successfully verified."
+
+      # Prepare portable package
+      - name: Package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          New-Item -ItemType Directory -Force package | Out-Null
+
+          $requiredFiles = @(
+              "build/Release/GpuKeepAlive.exe",
+              "README.txt",
+              "LICENSE",
+              "Setup.bat",
+              "Uninstall.bat",
+              "tray.ini",
+              "icon.ico",
+              "icon.png"
+          )
+
+          foreach ($file in $requiredFiles) {
+              if (!(Test-Path $file)) {
+                  throw "Required package file missing: $file"
+              }
+              Copy-Item $file package/
+          }
+
+          Compress-Archive `
+              -Path package/* `
+              -DestinationPath GpuKeepAlive-Windows-x64.zip `
+              -Force
+
+      # Upload portable ZIP
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GpuKeepAlive-Windows-x64
+          path: GpuKeepAlive-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
