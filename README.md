@@ -73,7 +73,7 @@ Startup setup
 Run Uninstall.bat as administrator to remove the scheduled task and installed
 folder. 
 > [!NOTE]
->The portable executable can also be run directly without setup.
+>The portable executable can also be run directly without setup. (NOT RECOMMENDED)
 
 Requirements
 ------------------------------------
@@ -90,3 +90,7 @@ Based on my personal observations and my NVLDDMKM.SYS scenario, I suspect the pr
 This observation became the starting point for this project: instead of continuing to troubleshoot drivers and hardware endlessly, I wanted to try a different approach – keeping the GPU slightly active in the background to potentially avoid problematic low-power transitions.
 
 **My hope is that this project can help others experiencing the same frustrating issue. If you're dealing with similar crashes, I hope this little tool makes a difference in your case and saves you some of the time, frustration, and endless troubleshooting I've been through.**
+
+PRIVACY NOTICE
+------------------------------------
+This software is fully open source and does not connect to the internet, communicate with external servers, or collect, store, or transmit any personal information or user data. Everything runs locally on your computer. No tracking, no telemetry, no analytics, and no hidden background communication.
