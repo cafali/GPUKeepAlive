@@ -38,6 +38,9 @@ Tray=1
 
 Set Tray=1 to show the icon, or Tray=0 to hide it. Restart the app after edits.
 
+<img width="306" height="247" alt="image" src="https://github.com/user-attachments/assets/5e74071c-be36-4dc4-a39d-022c19d3037a" />
+
+
 Startup setup
 ------------------------------------
 1. Build the application (or obtain a prebuilt GpuKeepAlive.exe).
