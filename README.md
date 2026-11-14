@@ -7,11 +7,13 @@ Struggling with **NVLDDMKM.SYS** TDR errors that cause your PC to freeze or rest
 <img width="1920" height="400" alt="nvlk" src="https://github.com/user-attachments/assets/c99a5010-96e0-43f8-8b94-74e51f8ca832" />
 
 
+WHEN TO USE?
+------------------------------------
 
-**CRASHING DURING IDLE & WATCHING VIDEOS:** ✅
+✅**CRASHING DURING IDLE & WATCHING VIDEOS:** 
 >Yes! This is exactly what the tool is designed for. Use it if your PC crashes while browsing, watching videos, or performing other lightweight tasks.
 
-**CRASHING DURING GAMING AND HIGH LOADS:** ❌
+❌**CRASHING DURING GAMING AND HIGH LOADS:** 
 >Not intended for this scenario. This tool is unlikely to help if your crashes happen mainly during gaming or high GPU loads.
 
 
