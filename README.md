@@ -73,7 +73,8 @@ If tray.ini says Tray=1, a notification-area icon is shown.
 Right-click it for Info or Exit. Info opens
 the README file. If Tray=0, it runs without a tray icon; use Task Manager to exit it.
 
-<img width="1046" height="160" alt="image" src="https://github.com/user-attachments/assets/91a7a566-66cf-4e25-b1fc-fb55bf7ec5c9" />
+<img width="1972" height="371" alt="image" src="https://github.com/user-attachments/assets/61593005-dd26-4def-9c35-caa2290a55c8" />
+
 
 
 tray.ini
