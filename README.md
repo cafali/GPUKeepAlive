@@ -11,10 +11,10 @@ Direct3D 11 rendering workload once every 2 minutes.
 WHEN TO USE?
 ------------------------------------
 
-✅**CRASHING DURING IDLE & WATCHING VIDEOS:** 
+✅**CRASHING DURING IDLE & WATCHING VIDEOS** 
 >Yes! This is exactly what the tool is designed for. Use it if your PC crashes while browsing, watching videos, or performing other lightweight tasks.
 
-❌**CRASHING DURING GAMING AND HIGH LOADS:** 
+❌**CRASHING DURING GAMING AND HIGH LOADS** 
 >Not intended for this scenario. This tool is unlikely to help if your crashes happen mainly during gaming or high GPU loads.
 
 
