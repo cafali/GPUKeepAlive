@@ -89,14 +89,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     return DefWindowProcW(hwnd,msg,wp,lp);
 }
 int WINAPI wWinMain(HINSTANCE instance,HINSTANCE, PWSTR,int) {
-    HANDLE mutex=CreateMutexW(nullptr,TRUE,L"Local\\GpuKeepAlive_SingleInstance");
+    HANDLE mutex=CreateMutexW(nullptr,TRUE,L"Local\\GPUKeepAlive_SingleInstance");
     if(!mutex||GetLastError()==ERROR_ALREADY_EXISTS) { if(mutex) CloseHandle(mutex); return 0; }
     g_trayVisible=TraySetting();
-    WNDCLASSW wc{}; wc.lpfnWndProc=WndProc; wc.hInstance=instance; wc.lpszClassName=L"GpuKeepAliveHiddenWindow"; wc.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(IDI_APP)); RegisterClassW(&wc);
-    g_hwnd=CreateWindowExW(0,wc.lpszClassName,L"GpuKeepAlive",0,0,0,0,0,HWND_MESSAGE,nullptr,instance,nullptr);
+    WNDCLASSW wc{}; wc.lpfnWndProc=WndProc; wc.hInstance=instance; wc.lpszClassName=L"GPUKeepAliveHiddenWindow"; wc.hIcon=LoadIconW(instance,MAKEINTRESOURCEW(IDI_APP)); RegisterClassW(&wc);
+    g_hwnd=CreateWindowExW(0,wc.lpszClassName,L"GPUKeepAlive",0,0,0,0,0,HWND_MESSAGE,nullptr,instance,nullptr);
     if(!g_hwnd) { ReleaseMutex(mutex); CloseHandle(mutex); return 2; }
-    if(g_trayVisible) { g_nid.cbSize=sizeof(g_nid); g_nid.hWnd=g_hwnd; g_nid.uID=ID_TRAY; g_nid.uFlags=NIF_MESSAGE|NIF_ICON|NIF_TIP; g_nid.uCallbackMessage=WM_TRAY; g_nid.hIcon=(HICON)LoadImageW(instance,MAKEINTRESOURCEW(IDI_APP),IMAGE_ICON,0,0,LR_DEFAULTSIZE); wcscpy_s(g_nid.szTip,L"GpuKeepAlive"); Shell_NotifyIconW(NIM_ADD,&g_nid); }
-    std::thread gpu([]{ if(!InitGpu()) { g_renderOk=false; if(g_hwnd) MessageBoxW(g_hwnd,L"Direct3D 11 initialization failed. GPU keep-alive is not active. Check the graphics driver and Windows event log.",L"GpuKeepAlive",MB_ICONWARNING|MB_OK); } });
+    if(g_trayVisible) { g_nid.cbSize=sizeof(g_nid); g_nid.hWnd=g_hwnd; g_nid.uID=ID_TRAY; g_nid.uFlags=NIF_MESSAGE|NIF_ICON|NIF_TIP; g_nid.uCallbackMessage=WM_TRAY; g_nid.hIcon=(HICON)LoadImageW(instance,MAKEINTRESOURCEW(IDI_APP),IMAGE_ICON,0,0,LR_DEFAULTSIZE); wcscpy_s(g_nid.szTip,L"GPUKeepAlive"); Shell_NotifyIconW(NIM_ADD,&g_nid); }
+    std::thread gpu([]{ if(!InitGpu()) { g_renderOk=false; if(g_hwnd) MessageBoxW(g_hwnd,L"Direct3D 11 initialization failed. GPU keep-alive is not active. Check the graphics driver and Windows event log.",L"GPUKeepAlive",MB_ICONWARNING|MB_OK); } });
     MSG msg{}; while(GetMessageW(&msg,nullptr,0,0)>0) { TranslateMessage(&msg); DispatchMessageW(&msg); }
     g_running=false; if(gpu.joinable()) gpu.join(); if(g_nid.hIcon) DestroyIcon(g_nid.hIcon); ReleaseMutex(mutex); CloseHandle(mutex); return 0;
 }
