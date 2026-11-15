@@ -1,0 +1,29 @@
+GPUKeepAlive - Changelog
+https://github.com/cafali/GPUKeepAlive
+---------------------------
+1.0.0
+
+- Initial implementation of background Direct3D 11 rendering
+- Added minimal off-screen rendering using a 64 × 64 render target
+- Added hardware-accelerated Direct3D 11 device initialization
+- Rendering operation runs periodically in the background
+- Added single-instance protection to prevent multiple application instances
+- Added optional system tray icon with a context menu
+- Added **Info** option to open the accompanying README.txt
+- Added **Exit** option to close the application
+
+Configuration:
+
+- Added tray.ini for configuring system tray visibility
+  - Tray=1 – Enables the system tray icon
+  - Tray=0 – Disables the system tray icon
+- Tray visibility can be configured without modifying the executable
+
+Known Issues & Notes:
+
+- As this is the initial release, some bugs, unexpected behavior, or compatibility issues may occur
+- The application has been tested on my personal system and performed as expected during my tests
+- However, it may not work exactly as intended on every system or hardware configuration
+- Direct3D 11 initialization depends on compatible graphics hardware and drivers
+---------------------------
+
