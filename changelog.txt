@@ -18,12 +18,5 @@ Configuration:
   - Tray=1 – Enables the system tray icon
   - Tray=0 – Disables the system tray icon
 - Tray visibility can be configured without modifying the executable
-
-Known Issues & Notes:
-
-- As this is the initial release, some bugs, unexpected behavior, or compatibility issues may occur
-- The application has been tested on my personal system and performed as expected during my tests
-- However, it may not work exactly as intended on every system or hardware configuration
-- Direct3D 11 initialization depends on compatible graphics hardware and drivers
 ---------------------------
 
