@@ -8,14 +8,16 @@ Direct3D 11 rendering workload once every 2 minutes.
 <img width="1920" height="400" alt="nvlk" src="https://github.com/user-attachments/assets/c99a5010-96e0-43f8-8b94-74e51f8ca832" />
 
 
-WHEN TO USE?
+When to use?
 ------------------------------------
 
 ✅**CRASHING DURING IDLE & WATCHING VIDEOS** 
->Yes! This is exactly what the tool is designed for. Use it if your PC crashes while browsing, watching videos, or performing other lightweight tasks.
 
-❌**CRASHING DURING GAMING AND HIGH LOADS** 
->Not intended for this scenario. This tool is unlikely to help if your crashes happen mainly during gaming or high GPU loads.
+**YES!** This is exactly what the tool is designed for. Use it if your PC crashes while browsing, watching videos, or performing other lightweight tasks.
+
+❌**CRASHING DURING GAMING AND HIGH LOADS**
+
+**NO!** GPUKeepAlive will not help you in this scenario. This tool is unlikely to help if your crashes happen mainly during gaming or high GPU loads.
 
 
 Why GPUKeepAlive?
@@ -44,10 +46,31 @@ This software was created to address a frustrating and difficult-to-diagnose NVI
 > [!CAUTION]
 >This solution is not guaranteed to work for everyone, as **NVLDDMKM.SYS** TDR errors can have different causes and occur under different conditions, including gaming and high GPU loads. This approach is specifically designed for users experiencing the opposite scenario: GPU crashes during low-power states, idle usage, or lightweight tasks such as watching videos, browsing the web, or using the desktop normally. The software aims to address this particular behavior by preventing the GPU from entering potentially problematic lowest-power states.
 
+Startup Setup
+------------------------------------
+1. Download or build the application yourself
+2. Right-click Setup.bat and choose Run as administrator
+3. Choose 1 for tray icon or 0 for hidden background operation
+4. Setup copies the app to %ProgramData%\GPUKeepAlive and creates a Task
+   Scheduler logon task using the interactive logged-in user (not SYSTEM)
+5. setup.log records installation path, time, and tray selection
+
+<img width="1282" height="112" alt="image" src="https://github.com/user-attachments/assets/814b778d-b8c0-4e17-a091-e923aec0fb2e" />
+
+Run Uninstall.bat as administrator to remove the scheduled task and installed
+folder. 
+> [!NOTE]
+>The portable executable can also be run directly without setup. (NOT RECOMMENDED)
+
 Run
 ------------------------------------
-Run GPUKeepAlive.exe. It starts in the background. If tray.ini says Tray=1,
-a notification-area icon is shown. Right-click it for Info or Exit. Info opens
+LOGOUT or RESTART your PC, GPUKeepAlive.exe should start automatically via Task Scheduler. It starts in the background. 
+If tray.ini says Tray=1, a notification-area icon is shown.
+
+<img width="306" height="247" alt="image" src="https://github.com/user-attachments/assets/2580ab58-39c9-4165-82ac-047af51393da" />
+
+
+Right-click it for Info or Exit. Info opens
 the README file. If Tray=0, it runs without a tray icon; use Task Manager to exit it.
 
 <img width="1046" height="160" alt="image" src="https://github.com/user-attachments/assets/91a7a566-66cf-4e25-b1fc-fb55bf7ec5c9" />
@@ -60,30 +83,12 @@ Tray=1
 
 Set Tray=1 to show the icon, or Tray=0 to hide it. Restart the app after edits.
 
-<img width="306" height="247" alt="image" src="https://github.com/user-attachments/assets/5e74071c-be36-4dc4-a39d-022c19d3037a" />
-
-
-Startup setup
+System Requirements
 ------------------------------------
-1. Build the application (or obtain a prebuilt GPUKeepAlive.exe).
-2. Right-click Setup.bat and choose Run as administrator.
-3. Choose 1 for tray icon or 0 for hidden background operation.
-4. Setup copies the app to %ProgramData%\GPUKeepAlive and creates a Task
-   Scheduler logon task using the interactive logged-in user (not SYSTEM).
-5. setup.log records installation path, time, and tray selection.
+- NVIDIA GPU (GTX, RTX, ...)
+- Windows 10/11 x64, a working Direct3D 11-capable graphics driver.
 
-<img width="1282" height="112" alt="image" src="https://github.com/user-attachments/assets/814b778d-b8c0-4e17-a091-e923aec0fb2e" />
-
-Run Uninstall.bat as administrator to remove the scheduled task and installed
-folder. 
-> [!NOTE]
->The portable executable can also be run directly without setup. (NOT RECOMMENDED)
-
-Requirements
-------------------------------------
-Windows 10/11 x64, a working Direct3D 11-capable graphics driver.
-
-PERSONAL OBSERVATION – ON MY PREVIOUS HARDWARE
+Personal Observation & my experience with NVLDDMKM.SYS
 ------------------------------------
 My problems started after upgrading to a newer GPU. Since then, I've been experiencing random system freezes and restarts related to NVLDDMKM.SYS TDR errors. What makes this issue particularly strange is that it almost never happens while gaming or running GPU-intensive applications. Instead, it happens during everyday activities such as watching YouTube or Twitch, browsing the internet, or simply leaving the PC idle.
 
