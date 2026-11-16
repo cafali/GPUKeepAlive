@@ -24,24 +24,28 @@ When to use?
 > The colored dots indicate how likely this tool is to help with each scenario.
 
 ### Freezing & Stuttering
-🟢 Freezing twice for a short time when moving the mouse on the desktop after boot  
-🟢 System freezing while idle (on the desktop)  
-🟢 System freezing while watching YouTube, Twitch, or any video-related content  
-🟢 Micro-stutters during daily use  
+- 🟢 Freezing twice for a short time when moving the mouse on the desktop after boot  
+- 🟢 System freezing while idle (on the desktop)  
+- 🟢 System freezing while watching YouTube, Twitch, or any video-related content  
+- 🟢 Micro-stutters during daily use
+- 🔴 System freezing & Micro-stutters during gaming and high-power activities    
 
 ### BSOD (nvlddmkm.sys)
-🟢 BSOD while idle (on the desktop) and during low-power tasks such as browsing and daily activities  
-🔴 BSOD during gaming and high-power activities  
+- 🟢 BSOD while idle (on the desktop) and during low-power tasks such as browsing and daily activities  
+- 🔴 BSOD during gaming and high-power activities  
 
 ### Black Screen
-🟢 Black screen while idle (on the desktop)  
-🟢 Black screen while watching YouTube, Twitch, or any video-related content  
-🟢 Black screen during low-power activities, where the PC spins up the fans to max speed after 5–10 minutes *(requires manual restart)*  
+- 🟢 Black screen while idle (on the desktop)
+- 🟢 Black screen while watching YouTube, Twitch, or any video-related content
+- 🟢 Black screen during low-power activities, where the PC spins up the fans to max speed after 5–10 minutes *(requires manual restart)*
+- 🔴 Black screen while gaming due to a driver crash
+
 
 ### Artifacting, Crashing to Desktop
-🔴 Artifacting and freezing while gaming due to a driver crash  
-🟢 Artifacting and freezing while idle and during daily activities due to a driver crash  
-🔴 Games and applications crashing to the desktop  
+- 🟢 Artifacting and freezing while idle and during daily activities due to a driver crash  
+- 🔴 Games and applications crashing to the desktop   
+- 🔴 Artifacting and freezing while gaming due to a driver crash  
+
 
 
 Why GPUKeepAlive?
