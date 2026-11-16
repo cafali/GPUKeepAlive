@@ -3,7 +3,7 @@
 TLDR
 ------------------------------------
 Struggling with **NVLDDMKM.SYS** TDR errors that cause your PC to freeze or restart when you're just browsing the web, watching videos, or doing nothing at all? This project aims to solve that problem with a small, lightweight tool that runs quietly in the background and helps keep your graphics card active enough to avoid problematic low-power states. It creates a tiny off-screen
-Direct3D 11 rendering workload once every 2 minutes.
+Direct3D 11 rendering workload every 2 minutes by default (configurable).
 
 <img width="1920" height="400" alt="nvlk" src="https://github.com/user-attachments/assets/c99a5010-96e0-43f8-8b94-74e51f8ca832" />
 
@@ -53,7 +53,7 @@ When to use?
 Why GPUKeepAlive?
 ------------------------------------
 GPUKeepAlive is a small Windows background utility. It creates a tiny off-screen
-Direct3D 11 rendering workload once every 2 minutes. There is no visible render
+Direct3D 11 rendering workload every 2 minutes by default (configurable). There is no visible render
 window. The intention is to discourage some GPUs/drivers from entering their
 lowest idle states.
 
@@ -98,6 +98,8 @@ Run
 ------------------------------------
 LOGOUT or RESTART your PC, GPUKeepAlive.exe should start automatically via Task Scheduler. It starts in the background. 
 If %LOCALAPPDATA%\GPUKeepAlive\tray.ini shows Tray=1, a notification-area icon is shown.
+
+You can also run the "GPUKeepAlive" Task Scheduler entry manually to start it immediately.
 
 <img width="296" height="241" alt="image" src="https://github.com/user-attachments/assets/2657e6d1-aae1-47c9-9999-de1a3d6c87a7" />
 
