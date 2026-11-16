@@ -97,10 +97,8 @@ If tray.ini says Tray=1, a notification-area icon is shown.
 
 <img width="300" height="245" alt="image" src="https://github.com/user-attachments/assets/4c986ad5-790f-476f-8701-cbfe21e96e79" />
 
-
-
-Right-click it for Info or Exit. Info opens
-the README file. If Tray=0, it runs without a tray icon; use Task Manager to exit it.
+> [!NOTE]
+> If Tray=0, it runs without a tray icon; use Task Manager to exit it.
 
 <img width="1972" height="371" alt="image" src="https://github.com/user-attachments/assets/61593005-dd26-4def-9c35-caa2290a55c8" />
 
