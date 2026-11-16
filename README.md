@@ -20,10 +20,8 @@ When to use?
 **NO!** GPUKeepAlive will not help you in this scenario. This tool is unlikely to help if your crashes happen mainly during gaming or high GPU loads.
 
 ## Different NVLDDMKM.SYS Scenarios
-
-The colored dots indicate how likely this tool is to help with each scenario.
-
-🟢 Likely to help 🔴 Unlikely to help
+> [!TIP]
+> The colored dots indicate how likely this tool is to help with each scenario.
 
 ### Freezing & Stuttering
 🟢 Freezing twice for a short time when moving the mouse on the desktop after boot  
@@ -53,7 +51,7 @@ Direct3D 11 rendering workload once every 2 minutes. There is no visible render
 window. The intention is to discourage some GPUs/drivers from entering their
 lowest idle states.
 
-Download GPUKeepAlive from GitHub: https://github.com/cafali/GPUKeepAlive/releases
+**DOWNLOAD** GPUKeepAlive from GitHub: https://github.com/cafali/GPUKeepAlive/releases
 
 > [!NOTE]
 > This is an experiment/workaround, NOT a repair for a faulty GPU,
