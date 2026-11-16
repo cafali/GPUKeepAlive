@@ -19,6 +19,32 @@ When to use?
 
 **NO!** GPUKeepAlive will not help you in this scenario. This tool is unlikely to help if your crashes happen mainly during gaming or high GPU loads.
 
+## Different NVLDDMKM.SYS Scenarios
+
+The colored dots indicate how likely this tool is to help with each scenario.
+
+🟢 Likely to help 🔴 Unlikely to help
+
+### Freezing & Stuttering
+🟢 Freezing twice for a short time when moving the mouse on the desktop after boot  
+🟢 System freezing while idle (on the desktop)  
+🟢 System freezing while watching YouTube, Twitch, or any video-related content  
+🟢 Micro-stutters during daily use  
+
+### BSOD (nvlddmkm.sys)
+🟢 BSOD while idle (on the desktop) and during low-power tasks such as browsing and daily activities  
+🔴 BSOD during gaming and high-power activities  
+
+### Black Screen
+🟢 Black screen while idle (on the desktop)  
+🟢 Black screen while watching YouTube, Twitch, or any video-related content  
+🟢 Black screen during low-power activities, where the PC spins up the fans to max speed after 5–10 minutes *(requires manual restart)*  
+
+### Artifacting, Crashing to Desktop
+🔴 Artifacting and freezing while gaming due to a driver crash  
+🟢 Artifacting and freezing while idle and during daily activities due to a driver crash  
+🔴 Games and applications crashing to the desktop  
+
 
 Why GPUKeepAlive?
 ------------------------------------
