@@ -120,7 +120,11 @@ System Requirements
 
 Personal Observation & my experience with NVLDDMKM.SYS
 ------------------------------------
+**Long, Long Time Ago...**
+
 My problems started after upgrading to a newer GPU. Since then, I've been experiencing random system freezes and restarts related to NVLDDMKM.SYS TDR errors. What makes this issue particularly strange is that it almost never happens while gaming or running GPU-intensive applications. Instead, it happens during everyday activities such as watching YouTube or Twitch, browsing the internet, or simply leaving the PC idle.
+
+I still find this error fascinating, since it occurs in so many different scenarios and is often pretty hard to resolve. Because there is no single solution to them all, almost every scenario has to be solved in a different way, from a simple driver reinstallation to more complex BIOS setting adjustments, or even hardware changes caused by incompatibilities between different components under varying loads.
 
 I've spent countless hours troubleshooting, replacing hardware, testing different GPUs and power supplies, reinstalling Windows, changing drivers, updating BIOS versions, and trying various software-based fixes. Nothing has permanently solved the problem.
 
