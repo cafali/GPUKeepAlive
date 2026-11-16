@@ -7,6 +7,8 @@ Direct3D 11 rendering workload once every 2 minutes.
 
 <img width="1920" height="400" alt="nvlk" src="https://github.com/user-attachments/assets/c99a5010-96e0-43f8-8b94-74e51f8ca832" />
 
+> [!WARNING]
+> This app was primarily designed for use on desktop machines, as it is already quite lightweight and requires as few system resources as possible. However, I cannot guarantee its impact on laptop battery life or power consumption, nor can I guarantee how it will perform on mobile devices.
 
 When to use?
 ------------------------------------
