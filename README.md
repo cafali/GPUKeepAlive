@@ -95,7 +95,8 @@ Run
 LOGOUT or RESTART your PC, GPUKeepAlive.exe should start automatically via Task Scheduler. It starts in the background. 
 If tray.ini says Tray=1, a notification-area icon is shown.
 
-<img width="300" height="245" alt="image" src="https://github.com/user-attachments/assets/4c986ad5-790f-476f-8701-cbfe21e96e79" />
+<img width="296" height="241" alt="image" src="https://github.com/user-attachments/assets/2657e6d1-aae1-47c9-9999-de1a3d6c87a7" />
+
 
 > [!NOTE]
 > If Tray=0, it runs without a tray icon; use Task Manager to exit it.
