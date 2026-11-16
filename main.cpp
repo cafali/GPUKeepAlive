@@ -473,7 +473,7 @@ static bool InitGpu()
 
         // Small workload interval.
         std::this_thread::sleep_for(
-            std::chrono::seconds(2)
+            std::chrono::seconds(120) 
         );
     }
 
