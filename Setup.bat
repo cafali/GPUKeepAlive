@@ -38,8 +38,6 @@ copy /Y "%APP_SRC%\GPUKeepAlive.exe" "%DEST%\GPUKeepAlive.exe" >nul || exit /b 1
 copy /Y "%APP_SRC%\LICENSE" "%DEST%\LICENSE" >nul
 copy /Y "%APP_SRC%\Uninstall.bat" "%DEST%\Uninstall.bat" >nul
 
-if exist "%APP_SRC%\README.md" copy /Y "%APP_SRC%\README.md" "%DEST%\README.md" >nul
-
 schtasks /Delete /TN "GPUKeepAlive" /F >nul 2>&1
 schtasks /Create /TN "GPUKeepAlive" /SC ONLOGON /RU "INTERACTIVE" /RL LIMITED /TR "%DEST%\GPUKeepAlive.exe" /F >nul
 if errorlevel 1 (
@@ -56,5 +54,5 @@ echo Installed to: %DEST%
 echo Startup task created. It will run at the next user logon.
 echo Start Menu shortcut created: GPUKeepAlive Service
 
-explorer "%LOCALCFG%"
+explorer "%DEST%"
 pause

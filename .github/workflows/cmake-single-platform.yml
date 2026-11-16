@@ -81,10 +81,6 @@ jobs:
 
           Copy-Item "Setup.bat" $root\setup.bat
 
-            if (Test-Path "README.md") {
-              Copy-Item "README.md" $appDir/
-            }
-
           if (!(Test-Path "$root\setup.bat")) {
               throw "setup.bat was not placed at the root of the archive."
           }

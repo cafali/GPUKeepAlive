@@ -61,6 +61,8 @@ static std::wstring g_gpuName = L"NVIDIA GPU not initialized";
 static std::wstring g_gpuIdText = L"NVIDIA GPU not initialized";
 static UINT g_taskbarCreatedMsg = 0;
 
+static void RestartApplication();
+
 static std::wstring AppDir()
 {
     wchar_t path[MAX_PATH]{};
@@ -271,6 +273,29 @@ static bool IsTrayIconVisible()
     return g_trayVisible.load();
 }
 
+static bool LaunchCurrentExecutable()
+{
+    wchar_t exePath[MAX_PATH]{};
+    const DWORD len = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+    if (len == 0 || len >= MAX_PATH)
+        return false;
+
+    std::wstring cmd = L"\"" + std::wstring(exePath) + L"\"";
+    std::vector<wchar_t> buffer(cmd.begin(), cmd.end());
+    buffer.push_back(0);
+
+    STARTUPINFOW si{};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi{};
+    const BOOL ok = CreateProcessW(nullptr, buffer.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+    if (!ok)
+        return false;
+
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    return true;
+}
+
 static bool RegisterTrayIcon(HINSTANCE instance)
 {
     if (!IsTrayIconVisible() || !g_hwnd)
@@ -353,17 +378,8 @@ static void HideTrayIcon()
     if (!g_trayVisible.load())
         return;
 
-    g_trayVisible.store(false);
     SaveTraySetting(false);
-
-    if (g_nid.hIcon)
-    {
-        Shell_NotifyIconW(NIM_DELETE, &g_nid);
-        DestroyIcon(g_nid.hIcon);
-        g_nid.hIcon = nullptr;
-    }
-
-    g_trayRegistered.store(false);
+    RestartApplication();
 }
 
 static void OpenIntervalConfigFile()
@@ -699,15 +715,30 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         else if (id == ID_RESTART)
             RestartApplication();
         else if (id == ID_INTERVAL_30)
+        {
             SaveIntervalSetting(30);
+            RestartApplication();
+        }
         else if (id == ID_INTERVAL_60)
+        {
             SaveIntervalSetting(60);
+            RestartApplication();
+        }
         else if (id == ID_INTERVAL_120)
+        {
             SaveIntervalSetting(120);
+            RestartApplication();
+        }
         else if (id == ID_INTERVAL_300)
+        {
             SaveIntervalSetting(300);
+            RestartApplication();
+        }
         else if (id == ID_INTERVAL_600)
+        {
             SaveIntervalSetting(600);
+            RestartApplication();
+        }
         else if (id == ID_INTERVAL_CUSTOM)
             OpenIntervalConfigFile();
         else if (id == ID_EXIT)
@@ -728,29 +759,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         }
 
         g_running = false;
-
-        if (g_restartRequested.load())
-        {
-            g_restartRequested.store(false);
-
-            const std::wstring exePath = AppDir() + L"\\GPUKeepAlive.exe";
-            if (FileExists(exePath))
-            {
-                std::wstring cmd = L"\"" + exePath + L"\"";
-                std::vector<wchar_t> buffer(cmd.begin(), cmd.end());
-                buffer.push_back(0);
-
-                STARTUPINFO si{};
-                si.cb = sizeof(si);
-                PROCESS_INFORMATION pi{};
-                CreateProcessW(nullptr, buffer.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
-                if (pi.hThread)
-                    CloseHandle(pi.hThread);
-                if (pi.hProcess)
-                    CloseHandle(pi.hProcess);
-            }
-        }
-
         PostQuitMessage(0);
         return 0;
     }
@@ -836,7 +844,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
         g_nid.hIcon = nullptr;
     }
 
+    const bool shouldRestart = g_restartRequested.load();
+
     ReleaseMutex(mutex);
     CloseHandle(mutex);
+
+    if (shouldRestart)
+        LaunchCurrentExecutable();
+
     return 0;
 }
