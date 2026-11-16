@@ -43,7 +43,7 @@ jobs:
           Write-Host "Copyright:      $($info.LegalCopyright)"
           Write-Host "==========================================="
 
-          if ($info.FileVersion -ne "1.0.0.0") {
+          if ($info.FileVersion -ne "1.0.1.0") {
               throw "VERSIONINFO missing or incorrect!"
           }
 
@@ -59,14 +59,16 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
 
-          New-Item -ItemType Directory -Force package | Out-Null
+          $root = Join-Path $PWD "package"
+          $appDir = Join-Path $root "GPUKeepAlive"
+
+          Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force $appDir | Out-Null
 
           $requiredFiles = @(
               "build/Release/GPUKeepAlive.exe",
               "LICENSE",
-              "Setup.bat",
-              "Uninstall.bat",
-              "tray.ini"
+              "Uninstall.bat"
           )
 
           foreach ($file in $requiredFiles) {
@@ -74,17 +76,39 @@ jobs:
                   throw "Required package file missing: $file"
               }
 
-              Copy-Item $file package/
+              Copy-Item $file $appDir/
           }
 
-          Write-Host "Portable package contents:"
-          Get-ChildItem package
+          Copy-Item "Setup.bat" $root\setup.bat
 
-      # Upload package directly (no manually created ZIP)
+            if (Test-Path "README.md") {
+              Copy-Item "README.md" $appDir/
+            }
+
+          if (!(Test-Path "$root\setup.bat")) {
+              throw "setup.bat was not placed at the root of the archive."
+          }
+
+          $archive = "GPUKeepAlive-1.0.1.zip"
+          if (Test-Path $archive) { Remove-Item $archive -Force }
+
+          Compress-Archive -Path "$root\*" -DestinationPath $archive -Force
+
+          Write-Host "Portable package contents:"
+          Get-ChildItem $root -Force
+
+          Write-Host "Archive layout:"
+          Get-ChildItem $root -Recurse | Select-Object FullName
+
+          Get-ChildItem $root -Recurse | ForEach-Object {
+              Write-Host $_.FullName
+          }
+
+      # Upload packaged release archive
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GPUKeepAlive-Windows-x64
-          path: package/
+          name: GPUKeepAlive-1.0.1
+          path: GPUKeepAlive-1.0.1.zip
           if-no-files-found: error
           retention-days: 30

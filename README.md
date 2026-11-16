@@ -80,10 +80,12 @@ Startup Setup
 ------------------------------------
 1. Download or build the application yourself
 2. Right-click Setup.bat and choose Run as administrator
-3. Choose 1 for tray icon or 0 for hidden background operation
-4. Setup copies the app to %ProgramData%\GPUKeepAlive and creates a Task
-   Scheduler logon task using the interactive logged-in user (not SYSTEM)
-5. setup.log records installation path, time, and tray selection
+3. Setup installs the app to %ProgramData%\GPUKeepAlive and creates the required
+   LocalAppData configuration folder at %LOCALAPPDATA%\GPUKeepAlive
+4. The app creates and maintains tray.ini and interval.cfg under the LocalAppData
+   configuration directory, keeping user settings safe across restarts and reboots
+5. A Task Scheduler logon task is created for the interactive logged-in user
+   (not SYSTEM)
 
 <img width="1282" height="112" alt="image" src="https://github.com/user-attachments/assets/814b778d-b8c0-4e17-a091-e923aec0fb2e" />
 
@@ -95,7 +97,7 @@ folder.
 Run
 ------------------------------------
 LOGOUT or RESTART your PC, GPUKeepAlive.exe should start automatically via Task Scheduler. It starts in the background. 
-If tray.ini says Tray=1, a notification-area icon is shown.
+If %LOCALAPPDATA%\GPUKeepAlive\tray.ini shows Tray=1, a notification-area icon is shown.
 
 <img width="296" height="241" alt="image" src="https://github.com/user-attachments/assets/2657e6d1-aae1-47c9-9999-de1a3d6c87a7" />
 
@@ -112,7 +114,18 @@ tray.ini
 [General]
 Tray=1
 
-Set Tray=1 to show the icon, or Tray=0 to hide it. Restart the app after edits.
+Set Tray=1 to show the icon, or Tray=0 to hide it. The file lives in
+%LOCALAPPDATA%\GPUKeepAlive\tray.ini and is read automatically after restart.
+
+interval.cfg
+------------------------------------
+; GPUKeepAlive refresh interval
+; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.
+; Default: 120
+120
+
+This file is stored in %LOCALAPPDATA%\GPUKeepAlive\interval.cfg and is editable
+manually. Invalid or missing values fall back to the default 2 minute interval.
 
 System Requirements
 ------------------------------------

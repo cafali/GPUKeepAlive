@@ -2,34 +2,59 @@
 setlocal EnableExtensions
 net session >nul 2>&1
 if not %errorlevel%==0 (echo Please right-click Setup.bat and choose Run as administrator.& pause& exit /b 1)
+
 set "SRC=%~dp0"
+set "APP_SRC=%SRC%GPUKeepAlive"
 set "DEST=%ProgramData%\GPUKeepAlive"
-if not exist "%SRC%GPUKeepAlive.exe" (echo GPUKeepAlive.exe is missing. Run Build.bat first.& pause& exit /b 1)
-echo GPUKeepAlive setup
-echo 1 = show tray icon, 0 = run hidden
-choice /C 10 /N /M "Choose tray visibility (1 or 0): "
-if errorlevel 2 (set "TRAY=0") else set "TRAY=1"
+set "LOCALCFG=%LOCALAPPDATA%\GPUKeepAlive"
+
+if not exist "%APP_SRC%\GPUKeepAlive.exe" (
+	echo GPUKeepAlive.exe is missing. The extracted package is incomplete.
+	pause
+	exit /b 1
+)
+
+if not exist "%LOCALCFG%" mkdir "%LOCALCFG%" || exit /b 1
+
+if not exist "%LOCALCFG%\tray.ini" (
+	> "%LOCALCFG%\tray.ini" echo [General]
+	>> "%LOCALCFG%\tray.ini" echo Tray=1
+)
+
+if not exist "%LOCALCFG%\interval.cfg" (
+	> "%LOCALCFG%\interval.cfg" echo ; GPUKeepAlive refresh interval
+	>> "%LOCALCFG%\interval.cfg" echo ; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.
+	>> "%LOCALCFG%\interval.cfg" echo ; Default: 120
+	>> "%LOCALCFG%\interval.cfg" echo 120
+)
+
 if not exist "%DEST%" mkdir "%DEST%" || exit /b 1
-copy /Y "%SRC%GPUKeepAlive.exe" "%DEST%\GPUKeepAlive.exe" >nul || exit /b 1
-copy /Y "%SRC%README.txt" "%DEST%\README.txt" >nul
-copy /Y "%SRC%LICENSE" "%DEST%\LICENSE" >nul
-copy /Y "%SRC%Uninstall.bat" "%DEST%\Uninstall.bat" >nul
->"%DEST%\tray.ini" echo [General]
->>"%DEST%\tray.ini" echo Tray=%TRAY%
+
+echo GPUKeepAlive setup
+echo Installation directory: %DEST%
+echo Configuration directory: %LOCALCFG%
+
+copy /Y "%APP_SRC%\GPUKeepAlive.exe" "%DEST%\GPUKeepAlive.exe" >nul || exit /b 1
+copy /Y "%APP_SRC%\LICENSE" "%DEST%\LICENSE" >nul
+copy /Y "%APP_SRC%\Uninstall.bat" "%DEST%\Uninstall.bat" >nul
+
+if exist "%APP_SRC%\README.md" copy /Y "%APP_SRC%\README.md" "%DEST%\README.md" >nul
+
 schtasks /Delete /TN "GPUKeepAlive" /F >nul 2>&1
 schtasks /Create /TN "GPUKeepAlive" /SC ONLOGON /RU "INTERACTIVE" /RL LIMITED /TR "%DEST%\GPUKeepAlive.exe" /F >nul
-if errorlevel 1 (echo Task Scheduler registration failed.& exit /b 1)
-set "LOG=%DEST%\setup.log"
->>"%LOG%" echo --------------------------------------------------
->>"%LOG%" echo Installed: %DATE% %TIME%
->>"%LOG%" echo Path: %DEST%
->>"%LOG%" echo Tray visible: %TRAY%
->>"%LOG%" echo Startup: Task Scheduler - interactive user logon
->>"%LOG%" echo Result: success
- echo Installed to: %DEST%
-echo Tray visible: %TRAY%
+if errorlevel 1 (
+	echo Task Scheduler registration failed.
+	exit /b 1
+)
+
+set "STARTMENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs\GPUKeepAlive Service.lnk"
+set "SHORTCUT_TARGET=%DEST%\GPUKeepAlive.exe"
+
+powershell -NoProfile -Command "$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%STARTMENU%'); $Shortcut.TargetPath = '%SHORTCUT_TARGET%'; $Shortcut.WorkingDirectory = '%DEST%'; $Shortcut.IconLocation = '%SHORTCUT_TARGET%,0'; $Shortcut.Save()" >nul 2>&1
+
+echo Installed to: %DEST%
 echo Startup task created. It will run at the next user logon.
+echo Start Menu shortcut created: GPUKeepAlive Service
 
-explorer "%DEST%"
-
+explorer "%LOCALCFG%"
 pause

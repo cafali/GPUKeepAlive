@@ -1,259 +1,532 @@
-
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <commctrl.h>
 #include <shellapi.h>
+#include <shlobj.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <dxgi.h>
 #include <wrl/client.h>
 
 #include <atomic>
-#include <cstring>
-#include <cwchar>
-#include <thread>
+#include <algorithm>
 #include <chrono>
-#include <string>
 #include <filesystem>
+#include <fstream>
+#include <string>
+#include <thread>
+#include <vector>
 
-#include "resource.h"
-
+#pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "shell32.lib")
 
+#include "resource.h"
+
 using Microsoft::WRL::ComPtr;
 
 static constexpr UINT WM_TRAY = WM_APP + 1;
 static constexpr UINT ID_TRAY = 1001;
-static constexpr UINT ID_INFO = 2001;
-static constexpr UINT ID_EXIT = 2002;
+static constexpr UINT ID_ACTIVE_GPU = 2001;
+static constexpr UINT ID_CFG_FOLDER = 2002;
+static constexpr UINT ID_LICENSE = 2003;
+static constexpr UINT ID_CHECK_UPDATES = 2004;
+static constexpr UINT ID_VISIT_GITHUB = 2005;
+static constexpr UINT ID_HIDE_TRAY = 2006;
+static constexpr UINT ID_RESTART = 2007;
+static constexpr UINT ID_EXIT = 2008;
+
+static constexpr UINT ID_INTERVAL_30 = 2101;
+static constexpr UINT ID_INTERVAL_60 = 2102;
+static constexpr UINT ID_INTERVAL_120 = 2103;
+static constexpr UINT ID_INTERVAL_300 = 2104;
+static constexpr UINT ID_INTERVAL_600 = 2105;
+static constexpr UINT ID_INTERVAL_CUSTOM = 2106;
 
 static constexpr UINT NVIDIA_VENDOR_ID = 0x10DE;
+static constexpr int DEFAULT_INTERVAL_SECONDS = 120;
 
 static std::atomic<bool> g_running{true};
 static std::atomic<bool> g_renderOk{false};
+static std::atomic<int> g_gpuIntervalSeconds{DEFAULT_INTERVAL_SECONDS};
+static std::atomic<bool> g_trayVisible{true};
+static std::atomic<bool> g_restartRequested{false};
+static std::atomic<bool> g_trayRegistered{false};
+static std::atomic<bool> g_recoveryThreadActive{false};
 
 static NOTIFYICONDATAW g_nid{};
 static HWND g_hwnd{};
-static bool g_trayVisible = true;
-
 static std::wstring g_gpuName = L"NVIDIA GPU not initialized";
+static std::wstring g_gpuIdText = L"NVIDIA GPU not initialized";
+static UINT g_taskbarCreatedMsg = 0;
 
 static std::wstring AppDir()
 {
-    wchar_t p[MAX_PATH]{};
-    GetModuleFileNameW(nullptr, p, MAX_PATH);
-    return std::filesystem::path(p).parent_path().wstring();
+    wchar_t path[MAX_PATH]{};
+    GetModuleFileNameW(nullptr, path, MAX_PATH);
+    return std::filesystem::path(path).parent_path().wstring();
 }
 
 static std::wstring ReadmePath()
 {
-    return AppDir() + L"\\README.txt";
+    return AppDir() + L"\\README.md";
+}
+
+static std::wstring LocalAppDataDir()
+{
+    PWSTR knownPath = nullptr;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &knownPath)))
+    {
+        std::wstring path = knownPath;
+        CoTaskMemFree(knownPath);
+        return path;
+    }
+
+    wchar_t* envValue = nullptr;
+    size_t envLen = 0;
+    _wdupenv_s(&envValue, &envLen, L"LOCALAPPDATA");
+    if (envValue)
+    {
+        std::wstring path = envValue;
+        free(envValue);
+        return path;
+    }
+
+    return AppDir();
+}
+
+static std::wstring ConfigDir()
+{
+    return LocalAppDataDir() + L"\\GPUKeepAlive";
+}
+
+static std::wstring ConfigPath(const wchar_t* fileName)
+{
+    return ConfigDir() + L"\\" + fileName;
+}
+
+static bool FileExists(const std::wstring& path)
+{
+    return std::filesystem::exists(path);
+}
+
+static void EnsureConfigDirectory()
+{
+    std::error_code ec;
+    std::filesystem::create_directories(ConfigDir(), ec);
+}
+
+static void WriteTextFile(const std::wstring& path, const std::wstring& content)
+{
+    std::wofstream stream(path.c_str(), std::ios::out | std::ios::trunc);
+    if (stream.is_open())
+        stream << content;
+}
+
+static std::wstring TrimString(const std::wstring& value)
+{
+    const auto start = value.find_first_not_of(L" \t\r\n");
+    if (start == std::wstring::npos)
+        return L"";
+
+    const auto end = value.find_last_not_of(L" \t\r\n");
+    return value.substr(start, end - start + 1);
+}
+
+static std::wstring ExtractValueAfterEquals(const std::wstring& line)
+{
+    const auto pos = line.find(L'=' );
+    if (pos == std::wstring::npos)
+        return L"";
+
+    return TrimString(line.substr(pos + 1));
+}
+
+static void EnsureDefaultTrayConfig()
+{
+    EnsureConfigDirectory();
+    const std::wstring path = ConfigPath(L"tray.ini");
+    if (FileExists(path))
+        return;
+
+    const std::wstring content =
+        L"[General]\n"
+        L"Tray=1\n";
+
+    WriteTextFile(path, content);
+}
+
+static void EnsureDefaultIntervalConfig()
+{
+    EnsureConfigDirectory();
+    const std::wstring path = ConfigPath(L"interval.cfg");
+    if (FileExists(path))
+        return;
+
+    const std::wstring content =
+        L"; GPUKeepAlive refresh interval\n"
+        L"; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.\n"
+        L"; Default: 120\n"
+        L"120\n";
+
+    WriteTextFile(path, content);
 }
 
 static bool TraySetting()
 {
-    const auto p = AppDir() + L"\\tray.ini";
+    EnsureConfigDirectory();
+    EnsureDefaultTrayConfig();
 
+    const std::wstring path = ConfigPath(L"tray.ini");
     wchar_t value[16] = L"1";
-
-    GetPrivateProfileStringW(
-        L"General",
-        L"Tray",
-        L"1",
-        value,
-        16,
-        p.c_str()
-    );
-
+    GetPrivateProfileStringW(L"General", L"Tray", L"1", value, 16, path.c_str());
     return wcstol(value, nullptr, 10) != 0;
+}
+
+static void SaveTraySetting(bool visible)
+{
+    EnsureConfigDirectory();
+    const std::wstring path = ConfigPath(L"tray.ini");
+    const std::wstring content = L"[General]\nTray=" + std::wstring(visible ? L"1" : L"0") + L"\n";
+    WriteTextFile(path, content);
+    g_trayVisible.store(visible);
+}
+
+static int ReadIntervalSetting()
+{
+    EnsureConfigDirectory();
+    EnsureDefaultIntervalConfig();
+
+    const std::wstring intervalPath = ConfigPath(L"interval.cfg");
+    std::wifstream stream(intervalPath.c_str());
+    if (!stream.is_open())
+        return DEFAULT_INTERVAL_SECONDS;
+
+    std::wstring line;
+    while (std::getline(stream, line))
+    {
+        std::wstring trimmed = TrimString(line);
+        if (trimmed.empty() || trimmed[0] == L';' || trimmed[0] == L'#')
+            continue;
+
+        if (trimmed.find(L'=') != std::wstring::npos)
+            trimmed = ExtractValueAfterEquals(trimmed);
+
+        if (trimmed.empty())
+            continue;
+
+        wchar_t* end = nullptr;
+        long value = std::wcstol(trimmed.c_str(), &end, 10);
+        if (end != trimmed.c_str() && value > 0)
+            return static_cast<int>(value);
+    }
+
+    return DEFAULT_INTERVAL_SECONDS;
+}
+
+static void SaveIntervalSetting(int seconds)
+{
+    const int safeSeconds = std::max(1, seconds);
+    EnsureConfigDirectory();
+
+    const std::wstring path = ConfigPath(L"interval.cfg");
+    const std::wstring content =
+        L"; GPUKeepAlive refresh interval\n"
+        L"; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.\n"
+        L"; Default: 120\n"
+        + std::to_wstring(static_cast<long long>(safeSeconds)) + L"\n";
+
+    WriteTextFile(path, content);
+    g_gpuIntervalSeconds.store(safeSeconds);
+}
+
+static void UpdateGPUIdFile()
+{
+    EnsureConfigDirectory();
+    const std::wstring gpuFile = ConfigPath(L"GPUid.txt");
+    WriteTextFile(gpuFile, g_gpuIdText + L"\n");
+
+    const std::wstring hardwareFile = ConfigPath(L"hardware.txt");
+    std::wstring hardwareText = L"GPU: " + g_gpuName + L"\n";
+    hardwareText += L"GPU Identifier: " + g_gpuIdText + L"\n";
+    hardwareText += L"GPUKeepAlive active\n";
+
+    WriteTextFile(hardwareFile, hardwareText);
+}
+
+static void OpenConfigFolder()
+{
+    EnsureConfigDirectory();
+    ShellExecuteW(nullptr, L"open", ConfigDir().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+
+static void OpenFileWithDefaultApp(const std::wstring& path)
+{
+    ShellExecuteW(nullptr, L"open", path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+
+static bool IsTrayIconVisible()
+{
+    return g_trayVisible.load();
+}
+
+static bool RegisterTrayIcon(HINSTANCE instance)
+{
+    if (!IsTrayIconVisible() || !g_hwnd)
+        return false;
+
+    if (g_nid.hIcon)
+    {
+        DestroyIcon(g_nid.hIcon);
+        g_nid.hIcon = nullptr;
+    }
+
+    g_nid.cbSize = sizeof(g_nid);
+    g_nid.hWnd = g_hwnd;
+    g_nid.uID = ID_TRAY;
+    g_nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+    g_nid.uCallbackMessage = WM_TRAY;
+    g_nid.hIcon = reinterpret_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(IDI_APP), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE));
+
+    if (!g_nid.hIcon)
+    {
+        g_trayRegistered.store(false);
+        return false;
+    }
+
+    wcscpy_s(g_nid.szTip, L"GPUKeepAlive - Active");
+    if (!Shell_NotifyIconW(NIM_ADD, &g_nid))
+    {
+        DestroyIcon(g_nid.hIcon);
+        g_nid.hIcon = nullptr;
+        g_trayRegistered.store(false);
+        return false;
+    }
+
+    g_trayRegistered.store(true);
+    return true;
+}
+
+static void StartTrayRecoveryWorker(HINSTANCE instance)
+{
+    if (!IsTrayIconVisible() || g_recoveryThreadActive.exchange(true))
+        return;
+
+    std::thread([instance]()
+    {
+        while (g_running.load() && IsTrayIconVisible() && !g_trayRegistered.load())
+        {
+            if (RegisterTrayIcon(instance))
+                break;
+
+            std::this_thread::sleep_for(std::chrono::seconds(30));
+        }
+
+        g_recoveryThreadActive.store(false);
+    }).detach();
 }
 
 static void SetStatusTip(const wchar_t* tip)
 {
+    if (!g_trayRegistered.load())
+        return;
+
     wcsncpy_s(g_nid.szTip, tip, _TRUNCATE);
     g_nid.uFlags = NIF_TIP;
-
     Shell_NotifyIconW(NIM_MODIFY, &g_nid);
+}
+
+static bool RestoreTrayIconIfNeeded()
+{
+    if (!IsTrayIconVisible())
+        return false;
+
+    if (g_trayRegistered.load())
+        return true;
+
+    return RegisterTrayIcon(GetModuleHandleW(nullptr));
+}
+
+static void HideTrayIcon()
+{
+    if (!g_trayVisible.load())
+        return;
+
+    g_trayVisible.store(false);
+    SaveTraySetting(false);
+
+    if (g_nid.hIcon)
+    {
+        Shell_NotifyIconW(NIM_DELETE, &g_nid);
+        DestroyIcon(g_nid.hIcon);
+        g_nid.hIcon = nullptr;
+    }
+
+    g_trayRegistered.store(false);
+}
+
+static void OpenIntervalConfigFile()
+{
+    EnsureConfigDirectory();
+    EnsureDefaultIntervalConfig();
+    const std::wstring path = ConfigPath(L"interval.cfg");
+    OpenFileWithDefaultApp(path);
+}
+
+static void ShowActiveGpuMessage(HWND hwnd)
+{
+    const std::wstring info = L"GPU: " + g_gpuName + L"\n\nGPUKeepAlive is currently using this GPU.";
+    MessageBoxW(hwnd, info.c_str(), L"Active GPU", MB_OK | MB_ICONINFORMATION);
+}
+
+static void ConfirmHideTrayIcon(HWND hwnd)
+{
+    if (!IsTrayIconVisible())
+        return;
+
+    const int answer = MessageBoxW(
+        hwnd,
+        L"This will hide the GPUKeepAlive system tray icon until it is re-enabled.\n\nSelect Yes to hide or No to cancel.",
+        L"Hide tray icon?",
+        MB_YESNO | MB_ICONQUESTION
+    );
+
+    if (answer == IDYES)
+        HideTrayIcon();
 }
 
 static void ShowTrayMenu(HWND hwnd)
 {
     HMENU menu = CreatePopupMenu();
-
-    if (!menu)
+    HMENU intervalMenu = CreatePopupMenu();
+    if (!menu || !intervalMenu)
+    {
+        if (menu) DestroyMenu(menu);
+        if (intervalMenu) DestroyMenu(intervalMenu);
         return;
+    }
 
-    AppendMenuW(menu, MF_STRING, ID_INFO, L"Info");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_30, L"30 seconds");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_60, L"1 minute");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_120, L"2 minutes");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_300, L"5 minutes");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_600, L"10 minutes");
+    AppendMenuW(intervalMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_CUSTOM, L"Custom...");
+
+    AppendMenuW(menu, MF_POPUP | MF_STRING, reinterpret_cast<UINT_PTR>(intervalMenu), L"Set GPU Interval");
+    AppendMenuW(menu, MF_STRING, ID_ACTIVE_GPU, L"Active GPU");
+    AppendMenuW(menu, MF_STRING, ID_CFG_FOLDER, L"CFG Folder");
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING, ID_LICENSE, L"MIT LICENSE");
+    AppendMenuW(menu, MF_STRING, ID_CHECK_UPDATES, L"Check Updates");
+    AppendMenuW(menu, MF_STRING, ID_VISIT_GITHUB, L"Visit GitHub");
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING, ID_HIDE_TRAY, L"Hide Tray Icon");
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING, ID_RESTART, L"Restart");
     AppendMenuW(menu, MF_STRING, ID_EXIT, L"Exit");
 
     POINT pt{};
     GetCursorPos(&pt);
-
     SetForegroundWindow(hwnd);
-
-    TrackPopupMenu(
-        menu,
-        TPM_RIGHTBUTTON,
-        pt.x,
-        pt.y,
-        0,
-        hwnd,
-        nullptr
-    );
-
+    TrackPopupMenu(menu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hwnd, nullptr);
     DestroyMenu(menu);
 }
 
-// --------------------------------------------------
-// NVIDIA GPU ENUMERATION
-// --------------------------------------------------
+static void RestartApplication()
+{
+    g_restartRequested.store(true);
+    if (g_hwnd)
+        DestroyWindow(g_hwnd);
+}
 
-static bool FindNvidiaAdapter(
-    ComPtr<IDXGIAdapter1>& nvidiaAdapter,
-    DXGI_ADAPTER_DESC1& selectedDesc)
+static void OpenLicenseFile()
+{
+    const std::wstring licensePath = AppDir() + L"\\LICENSE";
+    if (FileExists(licensePath))
+        OpenFileWithDefaultApp(licensePath);
+}
+
+static bool FindNvidiaAdapter(ComPtr<IDXGIAdapter1>& nvidiaAdapter, DXGI_ADAPTER_DESC1& selectedDesc)
 {
     ComPtr<IDXGIFactory1> factory;
-
-    HRESULT hr = CreateDXGIFactory1(
-        IID_PPV_ARGS(&factory)
-    );
-
+    HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&factory));
     if (FAILED(hr))
-    {
-        OutputDebugStringW(
-            L"GPUKeepAlive: DXGI factory creation failed.\n"
-        );
-
         return false;
-    }
+
+    ComPtr<IDXGIAdapter1> bestAdapter;
+    DXGI_ADAPTER_DESC1 bestDesc{};
+    UINT64 bestMemory = 0;
 
     for (UINT i = 0; ; ++i)
     {
         ComPtr<IDXGIAdapter1> adapter;
-
         hr = factory->EnumAdapters1(i, &adapter);
-
         if (hr == DXGI_ERROR_NOT_FOUND)
             break;
-
         if (FAILED(hr))
             return false;
 
         DXGI_ADAPTER_DESC1 desc{};
-
         if (FAILED(adapter->GetDesc1(&desc)))
             continue;
 
-        // Ignore software rendering adapters.
         if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
             continue;
 
-        wchar_t info[512]{};
+        if (desc.VendorId != NVIDIA_VENDOR_ID)
+            continue;
 
-        swprintf_s(
-            info,
-            L"GPUKeepAlive: Found GPU: %ls | Vendor: 0x%04X\n",
-            desc.Description,
-            desc.VendorId
-        );
-
-        OutputDebugStringW(info);
-
-        // Select NVIDIA only.
-        if (desc.VendorId == NVIDIA_VENDOR_ID)
+        if (desc.DedicatedVideoMemory > bestMemory)
         {
-            nvidiaAdapter = adapter;
-            selectedDesc = desc;
-
-            OutputDebugStringW(
-                L"GPUKeepAlive: NVIDIA adapter selected.\n"
-            );
-
-            return true;
+            bestMemory = desc.DedicatedVideoMemory;
+            bestDesc = desc;
+            bestAdapter = adapter;
         }
     }
 
-    OutputDebugStringW(
-        L"GPUKeepAlive: No NVIDIA GPU found.\n"
-    );
+    if (!bestAdapter)
+        return false;
 
-    return false;
+    nvidiaAdapter = bestAdapter;
+    selectedDesc = bestDesc;
+    return true;
 }
-
-// --------------------------------------------------
-// GPU INITIALIZATION
-// --------------------------------------------------
 
 static bool InitGpu()
 {
-    // Find NVIDIA adapter.
     ComPtr<IDXGIAdapter1> nvidiaAdapter;
     DXGI_ADAPTER_DESC1 adapterDesc{};
-
     if (!FindNvidiaAdapter(nvidiaAdapter, adapterDesc))
         return false;
 
-    // Compile shaders.
     const char* shader =
         "struct V{float4 p:SV_POSITION;};"
         "V VS(uint id:SV_VertexID){"
         "V o;"
-        "float2 p[3]={"
-        "float2(-1,-1),"
-        "float2(0,1),"
-        "float2(1,-1)"
-        "};"
+        "float2 p[3]={float2(-1,-1),float2(0,1),float2(1,-1)};"
         "o.p=float4(p[id],0,1);"
         "return o;"
         "}"
-        "float4 PS():SV_TARGET{"
-        "return float4(0.02,0.04,0.08,1);"
-        "}";
+        "float4 PS():SV_TARGET{return float4(0.02,0.04,0.08,1);}";
 
     ComPtr<ID3DBlob> vsBlob;
     ComPtr<ID3DBlob> psBlob;
     ComPtr<ID3DBlob> errors;
 
-    HRESULT hr = D3DCompile(
-        shader,
-        strlen(shader),
-        nullptr,
-        nullptr,
-        nullptr,
-        "VS",
-        "vs_4_0",
-        D3DCOMPILE_OPTIMIZATION_LEVEL3,
-        0,
-        &vsBlob,
-        &errors
-    );
-
+    HRESULT hr = D3DCompile(shader, strlen(shader), nullptr, nullptr, nullptr, "VS", "vs_4_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &vsBlob, &errors);
     if (FAILED(hr))
         return false;
 
     errors.Reset();
 
-    hr = D3DCompile(
-        shader,
-        strlen(shader),
-        nullptr,
-        nullptr,
-        nullptr,
-        "PS",
-        "ps_4_0",
-        D3DCOMPILE_OPTIMIZATION_LEVEL3,
-        0,
-        &psBlob,
-        &errors
-    );
-
+    hr = D3DCompile(shader, strlen(shader), nullptr, nullptr, nullptr, "PS", "ps_4_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &psBlob, &errors);
     if (FAILED(hr))
         return false;
 
     UINT flags = 0;
-
 #if defined(_DEBUG)
     flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
@@ -268,59 +541,17 @@ static bool InitGpu()
 
     ComPtr<ID3D11Device> device;
     ComPtr<ID3D11DeviceContext> context;
-
     D3D_FEATURE_LEVEL got{};
 
-    // IMPORTANT:
-    // Explicit NVIDIA adapter selection.
-    // D3D_DRIVER_TYPE_UNKNOWN is required when an adapter is supplied.
-
-    hr = D3D11CreateDevice(
-        nvidiaAdapter.Get(),
-        D3D_DRIVER_TYPE_UNKNOWN,
-        nullptr,
-        flags,
-        levels,
-        ARRAYSIZE(levels),
-        D3D11_SDK_VERSION,
-        &device,
-        &got,
-        &context
-    );
-
-    // Compatibility fallback for older D3D11 runtimes.
+    hr = D3D11CreateDevice(nvidiaAdapter.Get(), D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags, levels, ARRAYSIZE(levels), D3D11_SDK_VERSION, &device, &got, &context);
     if (hr == E_INVALIDARG)
-    {
-        hr = D3D11CreateDevice(
-            nvidiaAdapter.Get(),
-            D3D_DRIVER_TYPE_UNKNOWN,
-            nullptr,
-            flags,
-            levels + 1,
-            ARRAYSIZE(levels) - 1,
-            D3D11_SDK_VERSION,
-            &device,
-            &got,
-            &context
-        );
-    }
+        hr = D3D11CreateDevice(nvidiaAdapter.Get(), D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags, levels + 1, ARRAYSIZE(levels) - 1, D3D11_SDK_VERSION, &device, &got, &context);
 
     if (FAILED(hr))
-    {
-        OutputDebugStringW(
-            L"GPUKeepAlive: NVIDIA D3D11 initialization failed.\n"
-        );
-
         return false;
-    }
-
-    // --------------------------------------------------
-    // VERIFY ACTUAL DEVICE ADAPTER
-    // --------------------------------------------------
 
     ComPtr<IDXGIDevice> dxgiDevice;
     ComPtr<IDXGIAdapter> actualAdapter;
-
     DXGI_ADAPTER_DESC actualDesc{};
 
     if (FAILED(device.As(&dxgiDevice)))
@@ -332,44 +563,27 @@ static bool InitGpu()
     if (FAILED(actualAdapter->GetDesc(&actualDesc)))
         return false;
 
-    // Never continue if the actual device isn't NVIDIA.
     if (actualDesc.VendorId != NVIDIA_VENDOR_ID)
-    {
-        OutputDebugStringW(
-            L"GPUKeepAlive: GPU verification failed!\n"
-        );
-
         return false;
-    }
 
-    // Store GPU information.
     g_gpuName = actualDesc.Description;
 
-    wchar_t gpuInfo[512]{};
-
+    wchar_t idBuffer[256]{};
     swprintf_s(
-        gpuInfo,
-        L"GPUKeepAlive ACTIVE\n"
-        L"GPU: %ls\n"
-        L"Vendor ID: 0x%04X\n"
-        L"Device ID: 0x%04X\n"
-        L"Dedicated VRAM: %llu MB\n"
-        L"Feature Level: 0x%X\n",
-        actualDesc.Description,
+        idBuffer,
+        L"VEN_%04X&DEV_%04X&SUBSYS_%08X&REV_%04X&LUID_%08X%08X",
         actualDesc.VendorId,
         actualDesc.DeviceId,
-        actualDesc.DedicatedVideoMemory / (1024 * 1024),
-        static_cast<unsigned int>(got)
+        actualDesc.SubSysId,
+        actualDesc.Revision,
+        static_cast<unsigned int>(actualDesc.AdapterLuid.HighPart),
+        static_cast<unsigned int>(actualDesc.AdapterLuid.LowPart)
     );
+    g_gpuIdText = idBuffer;
 
-    OutputDebugStringW(gpuInfo);
-
-    // --------------------------------------------------
-    // CREATE OFF-SCREEN RENDER TARGET
-    // --------------------------------------------------
+    UpdateGPUIdFile();
 
     D3D11_TEXTURE2D_DESC td{};
-
     td.Width = 64;
     td.Height = 64;
     td.MipLevels = 1;
@@ -380,238 +594,202 @@ static bool InitGpu()
     td.BindFlags = D3D11_BIND_RENDER_TARGET;
 
     ComPtr<ID3D11Texture2D> texture;
-
-    if (FAILED(device->CreateTexture2D(
-        &td,
-        nullptr,
-        &texture)))
+    if (FAILED(device->CreateTexture2D(&td, nullptr, &texture)))
         return false;
 
     ComPtr<ID3D11RenderTargetView> rtv;
-
-    if (FAILED(device->CreateRenderTargetView(
-        texture.Get(),
-        nullptr,
-        &rtv)))
+    if (FAILED(device->CreateRenderTargetView(texture.Get(), nullptr, &rtv)))
         return false;
 
-    // Create shaders.
     ComPtr<ID3D11VertexShader> vs;
     ComPtr<ID3D11PixelShader> ps;
-
-    if (FAILED(device->CreateVertexShader(
-        vsBlob->GetBufferPointer(),
-        vsBlob->GetBufferSize(),
-        nullptr,
-        &vs)))
+    if (FAILED(device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &vs)))
         return false;
 
-    if (FAILED(device->CreatePixelShader(
-        psBlob->GetBufferPointer(),
-        psBlob->GetBufferSize(),
-        nullptr,
-        &ps)))
+    if (FAILED(device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &ps)))
         return false;
 
-    // Configure rendering pipeline.
     D3D11_VIEWPORT vp{};
-
     vp.Width = 64.0f;
     vp.Height = 64.0f;
     vp.MinDepth = 0.0f;
     vp.MaxDepth = 1.0f;
 
-    context->OMSetRenderTargets(
-        1,
-        rtv.GetAddressOf(),
-        nullptr
-    );
-
+    context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
     context->RSSetViewports(1, &vp);
-
-    context->IASetPrimitiveTopology(
-        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
-    );
-
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->VSSetShader(vs.Get(), nullptr, 0);
     context->PSSetShader(ps.Get(), nullptr, 0);
 
-    // NVIDIA successfully initialized and verified.
-    g_renderOk = true;
-
-    // Update tray tooltip.
-    if (g_trayVisible)
+    g_renderOk.store(true);
+    if (g_trayVisible.load())
         SetStatusTip(L"GPUKeepAlive - NVIDIA active");
-
-    OutputDebugStringW(
-        L"GPUKeepAlive: NVIDIA rendering started.\n"
-    );
-
-    // --------------------------------------------------
-    // GPU RENDERING LOOP
-    // --------------------------------------------------
 
     while (g_running.load())
     {
-        const float clearColor[4] =
-        {
-            0.01f,
-            0.02f,
-            0.03f,
-            1.0f
-        };
-
-        context->ClearRenderTargetView(
-            rtv.Get(),
-            clearColor
-        );
-
+        const float clearColor[4] = { 0.01f, 0.02f, 0.03f, 1.0f };
+        context->ClearRenderTargetView(rtv.Get(), clearColor);
         context->Draw(3, 0);
-
-        // Submit queued GPU commands.
         context->Flush();
 
-        // Small workload interval.
-        std::this_thread::sleep_for(
-            std::chrono::seconds(120) 
-        );
+        const auto configuredInterval = std::chrono::seconds(g_gpuIntervalSeconds.load());
+        const auto start = std::chrono::steady_clock::now();
+        const auto deadline = start + configuredInterval;
+        while (g_running.load())
+        {
+            const auto remaining = deadline - std::chrono::steady_clock::now();
+            if (remaining <= std::chrono::milliseconds(0))
+                break;
+
+            const auto sleepFor = std::min<std::chrono::steady_clock::duration>(remaining, std::chrono::milliseconds(250));
+            std::this_thread::sleep_for(sleepFor);
+
+            if (g_gpuIntervalSeconds.load() != configuredInterval.count())
+                break;
+        }
     }
 
     context->ClearState();
-
-    g_renderOk = false;
-
+    g_renderOk.store(false);
     return true;
 }
 
-// --------------------------------------------------
-// WINDOW PROCEDURE
-// --------------------------------------------------
-
-static LRESULT CALLBACK WndProc(
-    HWND hwnd,
-    UINT msg,
-    WPARAM wp,
-    LPARAM lp)
+static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
-    if (msg == WM_TRAY)
+    if (msg == g_taskbarCreatedMsg)
     {
-        if (lp == WM_RBUTTONUP || lp == WM_CONTEXTMENU)
-            ShowTrayMenu(hwnd);
-
-        else if (lp == WM_LBUTTONDBLCLK)
+        if (IsTrayIconVisible())
         {
-            ShellExecuteW(
-                nullptr,
-                L"open",
-                ReadmePath().c_str(),
-                nullptr,
-                AppDir().c_str(),
-                SW_SHOWNORMAL
-            );
+            g_trayRegistered.store(false);
+            if (!RestoreTrayIconIfNeeded())
+                StartTrayRecoveryWorker(GetModuleHandleW(nullptr));
         }
 
         return 0;
     }
 
+    if (msg == WM_TRAY)
+    {
+        if (lp == WM_RBUTTONUP || lp == WM_CONTEXTMENU)
+            ShowTrayMenu(hwnd);
+        else if (lp == WM_LBUTTONDBLCLK)
+        {
+            if (FileExists(ReadmePath()))
+                OpenFileWithDefaultApp(ReadmePath());
+        }
+        return 0;
+    }
+
     if (msg == WM_COMMAND)
     {
-        if (LOWORD(wp) == ID_INFO)
-        {
-            wchar_t info[512]{};
+        const UINT id = LOWORD(wp);
 
-            swprintf_s(
-                info,
-                L"GPUKeepAlive\n\n"
-                L"GPU: %ls\n"
-                L"NVIDIA active: %ls",
-                g_gpuName.c_str(),
-                g_renderOk.load() ? L"YES" : L"NO"
-            );
-
-            MessageBoxW(
-                hwnd,
-                info,
-                L"GPUKeepAlive Information",
-                MB_OK | MB_ICONINFORMATION
-            );
-        }
-        else if (LOWORD(wp) == ID_EXIT)
-        {
+        if (id == ID_ACTIVE_GPU)
+            ShowActiveGpuMessage(hwnd);
+        else if (id == ID_CFG_FOLDER)
+            OpenConfigFolder();
+        else if (id == ID_LICENSE)
+            OpenLicenseFile();
+        else if (id == ID_CHECK_UPDATES)
+            ShellExecuteW(nullptr, L"open", L"https://github.com/cafali/GPUKeepAlive/releases", nullptr, nullptr, SW_SHOWNORMAL);
+        else if (id == ID_VISIT_GITHUB)
+            ShellExecuteW(nullptr, L"open", L"https://github.com/cafali/GPUKeepAlive", nullptr, nullptr, SW_SHOWNORMAL);
+        else if (id == ID_HIDE_TRAY)
+            ConfirmHideTrayIcon(hwnd);
+        else if (id == ID_RESTART)
+            RestartApplication();
+        else if (id == ID_INTERVAL_30)
+            SaveIntervalSetting(30);
+        else if (id == ID_INTERVAL_60)
+            SaveIntervalSetting(60);
+        else if (id == ID_INTERVAL_120)
+            SaveIntervalSetting(120);
+        else if (id == ID_INTERVAL_300)
+            SaveIntervalSetting(300);
+        else if (id == ID_INTERVAL_600)
+            SaveIntervalSetting(600);
+        else if (id == ID_INTERVAL_CUSTOM)
+            OpenIntervalConfigFile();
+        else if (id == ID_EXIT)
             DestroyWindow(hwnd);
-        }
 
         return 0;
     }
 
     if (msg == WM_DESTROY)
     {
-        if (g_trayVisible)
+        if (g_trayRegistered.load())
             Shell_NotifyIconW(NIM_DELETE, &g_nid);
+        g_trayRegistered.store(false);
+        if (g_nid.hIcon)
+        {
+            DestroyIcon(g_nid.hIcon);
+            g_nid.hIcon = nullptr;
+        }
 
         g_running = false;
 
-        PostQuitMessage(0);
+        if (g_restartRequested.load())
+        {
+            g_restartRequested.store(false);
 
+            const std::wstring exePath = AppDir() + L"\\GPUKeepAlive.exe";
+            if (FileExists(exePath))
+            {
+                std::wstring cmd = L"\"" + exePath + L"\"";
+                std::vector<wchar_t> buffer(cmd.begin(), cmd.end());
+                buffer.push_back(0);
+
+                STARTUPINFO si{};
+                si.cb = sizeof(si);
+                PROCESS_INFORMATION pi{};
+                CreateProcessW(nullptr, buffer.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+                if (pi.hThread)
+                    CloseHandle(pi.hThread);
+                if (pi.hProcess)
+                    CloseHandle(pi.hProcess);
+            }
+        }
+
+        PostQuitMessage(0);
         return 0;
     }
 
     return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
-// --------------------------------------------------
-// APPLICATION ENTRY POINT
-// --------------------------------------------------
-
-int WINAPI wWinMain(
-    HINSTANCE instance,
-    HINSTANCE,
-    PWSTR,
-    int)
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
 {
-    HANDLE mutex = CreateMutexW(
-        nullptr,
-        TRUE,
-        L"Local\\GPUKeepAlive_SingleInstance"
-    );
+    INITCOMMONCONTROLSEX icc{};
+    icc.dwSize = sizeof(icc);
+    icc.dwICC = ICC_STANDARD_CLASSES;
+    InitCommonControlsEx(&icc);
 
+    EnsureConfigDirectory();
+    EnsureDefaultTrayConfig();
+    EnsureDefaultIntervalConfig();
+
+    g_taskbarCreatedMsg = RegisterWindowMessageW(L"TaskbarCreated");
+
+    HANDLE mutex = CreateMutexW(nullptr, TRUE, L"Local\\GPUKeepAlive_SingleInstance");
     if (!mutex || GetLastError() == ERROR_ALREADY_EXISTS)
     {
         if (mutex)
             CloseHandle(mutex);
-
         return 0;
     }
 
-    g_trayVisible = TraySetting();
+    g_trayVisible.store(TraySetting());
+    g_gpuIntervalSeconds.store(ReadIntervalSetting());
 
     WNDCLASSW wc{};
-
     wc.lpfnWndProc = WndProc;
     wc.hInstance = instance;
     wc.lpszClassName = L"GPUKeepAliveHiddenWindow";
-    wc.hIcon = LoadIconW(
-        instance,
-        MAKEINTRESOURCEW(IDI_APP)
-    );
-
+    wc.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(IDI_APP));
     RegisterClassW(&wc);
 
-    g_hwnd = CreateWindowExW(
-        0,
-        wc.lpszClassName,
-        L"GPUKeepAlive",
-        0,
-        0,
-        0,
-        0,
-        0,
-        HWND_MESSAGE,
-        nullptr,
-        instance,
-        nullptr
-    );
-
+    g_hwnd = CreateWindowExW(0, wc.lpszClassName, L"GPUKeepAlive", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, instance, nullptr);
     if (!g_hwnd)
     {
         ReleaseMutex(mutex);
@@ -619,60 +797,28 @@ int WINAPI wWinMain(
         return 2;
     }
 
-    if (g_trayVisible)
+    if (g_trayVisible.load())
     {
-        g_nid.cbSize = sizeof(g_nid);
-        g_nid.hWnd = g_hwnd;
-        g_nid.uID = ID_TRAY;
-
-        g_nid.uFlags =
-            NIF_MESSAGE |
-            NIF_ICON |
-            NIF_TIP;
-
-        g_nid.uCallbackMessage = WM_TRAY;
-
-        g_nid.hIcon = (HICON)LoadImageW(
-            instance,
-            MAKEINTRESOURCEW(IDI_APP),
-            IMAGE_ICON,
-            0,
-            0,
-            LR_DEFAULTSIZE
-        );
-
-        wcscpy_s(
-            g_nid.szTip,
-            L"GPUKeepAlive - Initializing"
-        );
-
-        Shell_NotifyIconW(NIM_ADD, &g_nid);
+        if (!RegisterTrayIcon(instance))
+            StartTrayRecoveryWorker(instance);
     }
 
-    // Initialize NVIDIA GPU on a separate thread.
     std::thread gpu([]()
     {
         if (!InitGpu())
         {
-            g_renderOk = false;
-
+            g_renderOk.store(false);
             if (g_running.load() && g_hwnd)
             {
-                MessageBoxW(
-                    g_hwnd,
-                    L"NVIDIA GPU initialization failed.\n\n"
-                    L"No NVIDIA GPU was selected or Direct3D 11 "
-                    L"initialization failed.\n\n"
-                    L"Check your NVIDIA driver.",
+                MessageBoxW(g_hwnd,
+                    L"NVIDIA GPU initialization failed.\n\nNo NVIDIA GPU was selected or Direct3D 11 initialization failed.\n\nCheck your NVIDIA driver.",
                     L"GPUKeepAlive - Error",
-                    MB_ICONWARNING | MB_OK
-                );
+                    MB_ICONWARNING | MB_OK);
             }
         }
     });
 
     MSG msg{};
-
     while (GetMessageW(&msg, nullptr, 0, 0) > 0)
     {
         TranslateMessage(&msg);
@@ -685,10 +831,12 @@ int WINAPI wWinMain(
         gpu.join();
 
     if (g_nid.hIcon)
+    {
         DestroyIcon(g_nid.hIcon);
+        g_nid.hIcon = nullptr;
+    }
 
     ReleaseMutex(mutex);
     CloseHandle(mutex);
-
     return 0;
 }

@@ -1,6 +1,13 @@
 GPUKeepAlive - Changelog
 https://github.com/cafali/GPUKeepAlive
 ---------------------------
+1.0.1 - 11/2026
+
+- Added LocalAppData configuration storage for tray visibility and interval settings
+- Added persistent interval configuration and custom interval editing
+- Improved tray icon initialization and recovery after Windows restart
+- Updated tray context menu and application lifecycle handling
+
 1.0.0 - 11/2026
 
 - Initial implementation of background Direct3D 11 rendering
