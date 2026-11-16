@@ -52,5 +52,8 @@ if(MSVC)
 elseif(MINGW)
     target_link_options(GPUKeepAlive PRIVATE
         -municode
+        -static
+        -static-libgcc
+        -static-libstdc++
     )
 endif()
