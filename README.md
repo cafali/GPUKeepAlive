@@ -117,16 +117,6 @@ Tray=1
 Set Tray=1 to show the icon, or Tray=0 to hide it. The file lives in
 %LOCALAPPDATA%\GPUKeepAlive\tray.ini and is read automatically after restart.
 
-interval.cfg
-------------------------------------
-; GPUKeepAlive refresh interval
-; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.
-; Default: 120
-120
-
-This file is stored in %LOCALAPPDATA%\GPUKeepAlive\interval.cfg and is editable
-manually. Invalid or missing values fall back to the default 2 minute interval.
-
 System Requirements
 ------------------------------------
 - NVIDIA GPU (GTX, RTX, ...)
