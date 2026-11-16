@@ -19,7 +19,7 @@ When to use?
 
 **NO!** GPUKeepAlive will not help you in this scenario. This tool is unlikely to help if your crashes happen mainly during gaming or high GPU loads.
 
-## Different NVLDDMKM.SYS Scenarios
+## NVLDDMKM.SYS Scenarios
 > [!TIP]
 > The colored dots indicate how likely this tool is to help with each scenario.
 
