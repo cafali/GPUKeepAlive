@@ -1,5 +1,5 @@
 
-name: GpuKeepAlive Windows Build
+name: GPUKeepAlive Windows Build
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
       - name: Verify EXE metadata
         shell: pwsh
         run: |
-          $exe = "build/Release/GpuKeepAlive.exe"
+          $exe = "build/Release/GPUKeepAlive.exe"
 
           if (!(Test-Path $exe)) {
               throw "Executable not found: $exe"
@@ -47,7 +47,7 @@ jobs:
               throw "VERSIONINFO missing or incorrect!"
           }
 
-          if ($info.ProductName -ne "GpuKeepAlive") {
+          if ($info.ProductName -ne "GPUKeepAlive") {
               throw "ProductName missing or incorrect!"
           }
 
@@ -62,7 +62,7 @@ jobs:
           New-Item -ItemType Directory -Force package | Out-Null
 
           $requiredFiles = @(
-              "build/Release/GpuKeepAlive.exe",
+              "build/Release/GPUKeepAlive.exe",
               "LICENSE",
               "Setup.bat",
               "Uninstall.bat",
@@ -84,7 +84,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GpuKeepAlive-Windows-x64
+          name: GPUKeepAlive-Windows-x64
           path: package/
           if-no-files-found: error
           retention-days: 30
