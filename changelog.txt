@@ -3,10 +3,41 @@ https://github.com/cafali/GPUKeepAlive
 ---------------------------
 1.0.1 - 11/2026
 
-- Added LocalAppData configuration storage for tray visibility and interval settings
-- Added persistent interval configuration and custom interval editing
-- Improved tray icon initialization and recovery after Windows restart
-- Updated tray context menu and application lifecycle handling
+Added:
+- Added GPU refresh interval configuration with support for 30 seconds, 1, 2, 5, and 10 minutes
+- Added a custom interval configuration option through `interval.cfg`
+- Added persistent configuration storage in `%LOCALAPPDATA%\GPUKeepAlive`
+- Added GPU identification tracking through `GPUid.txt`
+- Added hardware information storage through `hardware.txt`
+- Added a dedicated GPU information menu entry
+- Added a configuration folder shortcut to the system tray menu
+- Added MIT License and GitHub shortcuts to the context menu
+- Added a Check Updates option linking to GitHub Releases
+- Added a confirmation dialog for hiding the system tray icon
+- Added a Start Menu shortcut named `GPUKeepAlive Service`
+
+Improved:
+- Redesigned and reorganized the system tray context menu
+- Improved GPU selection and hardware identification
+- Improved configuration handling and persistence across application restarts and Windows reboots
+- Improved system tray initialization and recovery during Windows startup
+- Improved application startup and shutdown reliability
+
+Changed:
+- Moved user-specific configuration and metadata files from the installation directory to `%LOCALAPPDATA%\GPUKeepAlive`
+
+Fixed:
+- Fixed unreliable system tray icon initialization during Windows startup
+- Addressed issues with tray icon visibility after Windows Explorer restarts
+- Fixed configuration write-permission issues caused by storing user-specific files in protected installation directories
+
+Installer & Distribution:
+- Updated `setup.bat` for the new ZIP archive structure
+- Updated `Uninstall.bat` to support complete application removal
+- Added Start Menu shortcut management
+- Improved scheduled-task cleanup during uninstallation
+- Preserved user configuration files when uninstalling
+
 
 1.0.0 - 11/2026
 
