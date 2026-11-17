@@ -7,11 +7,47 @@ set "SRC=%~dp0"
 set "APP_SRC=%SRC%GPUKeepAlive"
 set "DEST=%ProgramData%\GPUKeepAlive"
 set "LOCALCFG=%LOCALAPPDATA%\GPUKeepAlive"
+set "STARTMENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs\GPUKeepAlive Service.lnk"
 
 if not exist "%APP_SRC%\GPUKeepAlive.exe" (
 	echo GPUKeepAlive.exe is missing. The extracted package is incomplete.
 	pause
 	exit /b 1
+)
+
+if exist "%DEST%" (
+	powershell -NoProfile -Command "try { $dest = [IO.Path]::GetFullPath($env:DEST).TrimEnd('\'); $config = [IO.Path]::GetFullPath($env:LOCALCFG).TrimEnd('\'); $source = [IO.Path]::GetFullPath($env:APP_SRC).TrimEnd('\'); foreach ($dir in @($dest, $config)) { if ($source.Equals($dir, [StringComparison]::OrdinalIgnoreCase) -or $source.StartsWith($dir + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'The setup package is inside a directory that must be removed.' } }; Get-CimInstance Win32_Process -Filter 'Name=''GPUKeepAlive.exe''' -ErrorAction Stop | ForEach-Object { if (-not $_.ExecutablePath) { throw 'Cannot determine the path of a GPUKeepAlive process.' }; if ($_.ExecutablePath.Equals(($dest + '\GPUKeepAlive.exe'), [StringComparison]::OrdinalIgnoreCase)) { $process = Stop-Process -Id $_.ProcessId -Force -PassThru -ErrorAction Stop; if (-not $process.WaitForExit(10000)) { throw 'The existing process did not stop.' } } } } catch { Write-Error $_; exit 1 }" >nul
+	if errorlevel 1 (
+		echo Failed to stop the existing installation or validate the setup package location.
+		exit /b 1
+	)
+
+	schtasks /End /TN "GPUKeepAlive" >nul 2>&1
+	schtasks /Query /TN "GPUKeepAlive" >nul 2>&1
+	if not errorlevel 1 (
+		schtasks /Delete /TN "GPUKeepAlive" /F >nul 2>&1
+		if errorlevel 1 (
+			echo Failed to remove the existing startup task.
+			exit /b 1
+		)
+	)
+
+	if exist "%STARTMENU%" del /F /Q "%STARTMENU%" >nul 2>&1
+	if exist "%STARTMENU%" (
+		echo Failed to remove the existing Start Menu shortcut.
+		exit /b 1
+	)
+
+	rmdir /S /Q "%DEST%" >nul 2>&1
+	if exist "%DEST%" (
+		echo Failed to remove the existing installation directory.
+		exit /b 1
+	)
+	if exist "%LOCALCFG%" rmdir /S /Q "%LOCALCFG%" >nul 2>&1
+	if exist "%LOCALCFG%" (
+		echo Failed to remove the existing configuration directory.
+		exit /b 1
+	)
 )
 
 if not exist "%LOCALCFG%" mkdir "%LOCALCFG%" || exit /b 1
@@ -49,7 +85,6 @@ if errorlevel 1 (
 	exit /b 1
 )
 
-set "STARTMENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs\GPUKeepAlive Service.lnk"
 set "SHORTCUT_TARGET=%DEST%\GPUKeepAlive.exe"
 
 powershell -NoProfile -Command "$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%STARTMENU%'); $Shortcut.TargetPath = '%SHORTCUT_TARGET%'; $Shortcut.WorkingDirectory = '%DEST%'; $Shortcut.IconLocation = '%SHORTCUT_TARGET%,0'; $Shortcut.Save()" >nul 2>&1
