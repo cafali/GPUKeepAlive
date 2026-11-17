@@ -166,9 +166,17 @@ static void EnsureDefaultTrayConfig()
 static void EnsureDefaultIntervalConfig()
 {
     EnsureConfigDirectory();
-    const std::wstring path = ConfigPath(L"interval.cfg");
+    const std::wstring path = ConfigPath(L"interval.ini");
     if (FileExists(path))
         return;
+
+    const std::wstring legacyPath = ConfigPath(L"interval.cfg");
+    if (FileExists(legacyPath))
+    {
+        std::error_code ec;
+        std::filesystem::rename(legacyPath, path, ec);
+        return;
+    }
 
     const std::wstring content =
         L"# GPUKeepAlive refresh interval\n"
@@ -204,7 +212,9 @@ static int ReadIntervalSetting()
     EnsureConfigDirectory();
     EnsureDefaultIntervalConfig();
 
-    const std::wstring intervalPath = ConfigPath(L"interval.cfg");
+    std::wstring intervalPath = ConfigPath(L"interval.ini");
+    if (!FileExists(intervalPath))
+        intervalPath = ConfigPath(L"interval.cfg");
     std::wifstream stream(intervalPath.c_str());
     if (!stream.is_open())
         return DEFAULT_INTERVAL_SECONDS;
@@ -236,7 +246,7 @@ static void SaveIntervalSetting(int seconds)
     const int safeSeconds = std::max(1, seconds);
     EnsureConfigDirectory();
 
-    const std::wstring path = ConfigPath(L"interval.cfg");
+    const std::wstring path = ConfigPath(L"interval.ini");
     const std::wstring content =
         L"# GPUKeepAlive refresh interval\n"
         L"# Presets: 15, 30, 60, 120, 300, 600, 1800, 3600 seconds; any positive number is also allowed.\n"
@@ -390,7 +400,9 @@ static void OpenIntervalConfigFile()
 {
     EnsureConfigDirectory();
     EnsureDefaultIntervalConfig();
-    const std::wstring path = ConfigPath(L"interval.cfg");
+    std::wstring path = ConfigPath(L"interval.ini");
+    if (!FileExists(path))
+        path = ConfigPath(L"interval.cfg");
     OpenFileWithDefaultApp(path);
 }
 
@@ -450,7 +462,7 @@ static void ShowTrayMenu(HWND hwnd)
 
     AppendMenuW(menu, MF_STRING, ID_ACTIVE_GPU, L"Active GPU");
     AppendMenuW(menu, MF_POPUP | MF_STRING, reinterpret_cast<UINT_PTR>(intervalMenu), L"Set GPU Interval");
-    AppendMenuW(menu, MF_STRING, ID_CFG_FOLDER, L"CFG Folder");
+    AppendMenuW(menu, MF_STRING, ID_CFG_FOLDER, L"Settings Folder");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_CHECK_UPDATES, L"Check Updates");
     AppendMenuW(menu, MF_STRING, ID_VISIT_GITHUB, L"Visit on GitHub");

@@ -21,11 +21,15 @@ if not exist "%LOCALCFG%\tray.ini" (
 	>> "%LOCALCFG%\tray.ini" echo Tray=1
 )
 
-if not exist "%LOCALCFG%\interval.cfg" (
-	> "%LOCALCFG%\interval.cfg" echo ; GPUKeepAlive refresh interval
-	>> "%LOCALCFG%\interval.cfg" echo ; Presets: 15, 30, 60, 120, 300, 600, 1800, 3600 seconds; any positive number is also allowed.
-	>> "%LOCALCFG%\interval.cfg" echo ; Default: 120
-	>> "%LOCALCFG%\interval.cfg" echo interval=120
+if not exist "%LOCALCFG%\interval.ini" (
+	if exist "%LOCALCFG%\interval.cfg" (
+		move "%LOCALCFG%\interval.cfg" "%LOCALCFG%\interval.ini" >nul || exit /b 1
+	) else (
+		> "%LOCALCFG%\interval.ini" echo ; GPUKeepAlive refresh interval
+		>> "%LOCALCFG%\interval.ini" echo ; Presets: 15, 30, 60, 120, 300, 600, 1800, 3600 seconds; any positive number is also allowed.
+		>> "%LOCALCFG%\interval.ini" echo ; Default: 120
+		>> "%LOCALCFG%\interval.ini" echo interval=120
+	)
 )
 
 if not exist "%DEST%" mkdir "%DEST%" || exit /b 1

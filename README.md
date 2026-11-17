@@ -82,10 +82,11 @@ Startup Setup
 2. Right-click Setup.bat and choose Run as administrator
 3. Setup installs the app to %ProgramData%\GPUKeepAlive and creates the required
    LocalAppData configuration folder at %LOCALAPPDATA%\GPUKeepAlive
-4. The app creates and maintains tray.ini, interval.cfg, and hardware.txt under the
+4. The app creates and maintains tray.ini, interval.ini, and hardware.txt under the
    LocalAppData configuration directory, keeping user settings safe across restarts
    and reboots. The interval is configured as `interval=<seconds>` (for example,
-   `interval=120`). Preset intervals include 15 and 30 seconds, 1, 2, 5, 10,
+   `interval=120`). Existing `interval.cfg` settings are migrated to `interval.ini`.
+   Preset intervals include 15 and 30 seconds, 1, 2, 5, 10,
    30, and 60 minutes; custom positive intervals are also supported.
 5. A Task Scheduler logon task is created for the interactive logged-in user
    (not SYSTEM)
@@ -93,7 +94,7 @@ Startup Setup
 <img width="1282" height="112" alt="image" src="https://github.com/user-attachments/assets/814b778d-b8c0-4e17-a091-e923aec0fb2e" />
 
 Run Uninstall.bat as administrator to remove the scheduled task, installed
-folder, and GPUKeepAlive app data (including tray.ini and interval.cfg) from
+folder, and GPUKeepAlive app data (including tray.ini and interval.ini) from
 %LOCALAPPDATA%\GPUKeepAlive.
 > [!NOTE]
 >The portable executable can also be run directly without setup. (NOT RECOMMENDED)
