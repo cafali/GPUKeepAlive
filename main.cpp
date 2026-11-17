@@ -35,6 +35,7 @@ static constexpr UINT ID_VISIT_GITHUB = 2005;
 static constexpr UINT ID_HIDE_TRAY = 2006;
 static constexpr UINT ID_RESTART = 2007;
 static constexpr UINT ID_EXIT = 2008;
+static constexpr UINT ID_PAUSE = 2010;
 static constexpr UINT ID_VERSION_INFO = 2009;
 
 static constexpr UINT ID_INTERVAL_30 = 2101;
@@ -49,12 +50,13 @@ static constexpr UINT ID_INTERVAL_3600 = 2109;
 
 static constexpr UINT NVIDIA_VENDOR_ID = 0x10DE;
 static constexpr int DEFAULT_INTERVAL_SECONDS = 120;
-static constexpr wchar_t APP_VERSION[] = L"1.0.2";
+static constexpr wchar_t APP_VERSION[] = L"1.0.3";
 
 static std::atomic<bool> g_running{true};
 static std::atomic<bool> g_renderOk{false};
 static std::atomic<int> g_gpuIntervalSeconds{DEFAULT_INTERVAL_SECONDS};
 static std::atomic<bool> g_trayVisible{true};
+static std::atomic<bool> g_paused{false};
 static std::atomic<bool> g_restartRequested{false};
 static std::atomic<bool> g_trayRegistered{false};
 static std::atomic<bool> g_recoveryThreadActive{false};
@@ -72,11 +74,6 @@ static std::wstring AppDir()
     wchar_t path[MAX_PATH]{};
     GetModuleFileNameW(nullptr, path, MAX_PATH);
     return std::filesystem::path(path).parent_path().wstring();
-}
-
-static std::wstring ReadmePath()
-{
-    return AppDir() + L"\\README.md";
 }
 
 static std::wstring LocalAppDataDir()
@@ -317,6 +314,11 @@ static bool LaunchCurrentExecutable()
     return true;
 }
 
+static HICON LoadTrayIcon(HINSTANCE instance, bool paused)
+{
+    return reinterpret_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(paused ? IDI_PAUSE : IDI_APP), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE));
+}
+
 static bool RegisterTrayIcon(HINSTANCE instance)
 {
     if (!IsTrayIconVisible() || !g_hwnd)
@@ -333,7 +335,7 @@ static bool RegisterTrayIcon(HINSTANCE instance)
     g_nid.uID = ID_TRAY;
     g_nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
     g_nid.uCallbackMessage = WM_TRAY;
-    g_nid.hIcon = reinterpret_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(IDI_APP), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE));
+    g_nid.hIcon = LoadTrayIcon(instance, g_paused.load());
 
     if (!g_nid.hIcon)
     {
@@ -341,7 +343,7 @@ static bool RegisterTrayIcon(HINSTANCE instance)
         return false;
     }
 
-    wcscpy_s(g_nid.szTip, L"GPUKeepAlive - Active");
+    wcscpy_s(g_nid.szTip, g_paused.load() ? L"GPUKeepAlive - Paused" : L"GPUKeepAlive - Active");
     if (!Shell_NotifyIconW(NIM_ADD, &g_nid))
     {
         DestroyIcon(g_nid.hIcon);
@@ -381,6 +383,28 @@ static void SetStatusTip(const wchar_t* tip)
     wcsncpy_s(g_nid.szTip, tip, _TRUNCATE);
     g_nid.uFlags = NIF_TIP;
     Shell_NotifyIconW(NIM_MODIFY, &g_nid);
+}
+
+static void TogglePause()
+{
+    const bool paused = !g_paused.load();
+    g_paused.store(paused);
+
+    if (!g_trayRegistered.load())
+        return;
+
+    HICON icon = LoadTrayIcon(GetModuleHandleW(nullptr), paused);
+    if (!icon)
+        return;
+
+    HICON oldIcon = g_nid.hIcon;
+    g_nid.hIcon = icon;
+    wcsncpy_s(g_nid.szTip, paused ? L"GPUKeepAlive - Paused" : L"GPUKeepAlive - NVIDIA active", _TRUNCATE);
+    g_nid.uFlags = NIF_ICON | NIF_TIP;
+    Shell_NotifyIconW(NIM_MODIFY, &g_nid);
+
+    if (oldIcon)
+        DestroyIcon(oldIcon);
 }
 
 static bool RestoreTrayIconIfNeeded()
@@ -473,10 +497,11 @@ static void ShowTrayMenu(HWND hwnd)
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_CHECK_UPDATES, L"Check Updates");
     AppendMenuW(menu, MF_STRING, ID_VISIT_GITHUB, L"Visit on GitHub");
-    AppendMenuW(menu, MF_STRING, ID_VERSION_INFO, L"Version Info (1.0.2)");
+    AppendMenuW(menu, MF_STRING, ID_VERSION_INFO, L"Version Info (1.0.3)");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_HIDE_TRAY, L"Hide Tray Icon");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING, ID_PAUSE, g_paused.load() ? L"Resume" : L"Pause");
     AppendMenuW(menu, MF_STRING, ID_RESTART, L"Restart");
     AppendMenuW(menu, MF_STRING, ID_EXIT, L"Exit");
 
@@ -667,11 +692,17 @@ static bool InitGpu()
     context->PSSetShader(ps.Get(), nullptr, 0);
 
     g_renderOk.store(true);
-    if (g_trayVisible.load())
+    if (g_trayVisible.load() && !g_paused.load())
         SetStatusTip(L"GPUKeepAlive - NVIDIA active");
 
     while (g_running.load())
     {
+        if (g_paused.load())
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+            continue;
+        }
+
         const float clearColor[4] = { 0.01f, 0.02f, 0.03f, 1.0f };
         context->ClearRenderTargetView(rtv.Get(), clearColor);
         context->Draw(3, 0);
@@ -689,7 +720,7 @@ static bool InitGpu()
             const auto sleepFor = std::min<std::chrono::steady_clock::duration>(remaining, std::chrono::milliseconds(250));
             std::this_thread::sleep_for(sleepFor);
 
-            if (g_gpuIntervalSeconds.load() != configuredInterval.count())
+            if (g_gpuIntervalSeconds.load() != configuredInterval.count() || g_paused.load())
                 break;
         }
     }
@@ -718,10 +749,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         if (lp == WM_RBUTTONUP || lp == WM_CONTEXTMENU)
             ShowTrayMenu(hwnd);
         else if (lp == WM_LBUTTONDBLCLK)
-        {
-            if (FileExists(ReadmePath()))
-                OpenFileWithDefaultApp(ReadmePath());
-        }
+            TogglePause();
         return 0;
     }
 
@@ -741,6 +769,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             ShowVersionInfo(hwnd);
         else if (id == ID_HIDE_TRAY)
             ConfirmHideTrayIcon(hwnd);
+        else if (id == ID_PAUSE)
+            TogglePause();
         else if (id == ID_RESTART)
             RestartApplication();
         else if (id == ID_INTERVAL_30)
