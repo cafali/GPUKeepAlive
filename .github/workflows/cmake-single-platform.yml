@@ -85,26 +85,21 @@ jobs:
               throw "setup.bat was not placed at the root of the archive."
           }
 
-          $archive = "GPUKeepAlive-1.0.2.zip"
-          if (Test-Path $archive) { Remove-Item $archive -Force }
-
-          Compress-Archive -Path "$root\*" -DestinationPath $archive -Force
-
           Write-Host "Portable package contents:"
           Get-ChildItem $root -Force
 
-          Write-Host "Archive layout:"
+          Write-Host "Package layout:"
           Get-ChildItem $root -Recurse | Select-Object FullName
 
           Get-ChildItem $root -Recurse | ForEach-Object {
               Write-Host $_.FullName
           }
 
-      # Upload packaged release archive
+      # Upload the package contents. GitHub creates the single downloadable artifact ZIP.
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: GPUKeepAlive-1.0.2
-          path: GPUKeepAlive-1.0.2.zip
+          path: package/**
           if-no-files-found: error
           retention-days: 30
