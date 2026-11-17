@@ -86,8 +86,7 @@ Startup Setup
    LocalAppData configuration folder at %LOCALAPPDATA%\GPUKeepAlive
 4. The app creates and maintains set_gpukeepalive.ini and gpudata.log under the
    LocalAppData configuration directory, keeping user settings safe across restarts
-   and reboots. Existing tray.ini and interval.ini (or interval.cfg) settings are
-   migrated automatically on first startup.
+   and reboots.
 5. A Task Scheduler logon task is created for the interactive logged-in user
 
 <img width="1282" height="112" alt="image" src="https://github.com/user-attachments/assets/814b778d-b8c0-4e17-a091-e923aec0fb2e" />
@@ -109,17 +108,23 @@ You can also run the "GPUKeepAlive" Task Scheduler entry manually to start it im
 
 
 > [!NOTE]
-> If Tray=0, it runs without a tray icon; use Task Manager to exit it.
+> If Tray=0, it runs without a tray icon, use Task Manager to exit it.
 
 <img width="1972" height="371" alt="image" src="https://github.com/user-attachments/assets/61593005-dd26-4def-9c35-caa2290a55c8" />
+
+Preview
+------------------------------------
+
+
+https://github.com/user-attachments/assets/9928118f-1a9b-498a-bd4c-fd543f0f47fd
+
+
 
 
 
 set_gpukeepalive.ini
 ------------------------------------
 ```ini
-## GPUKeepAlive Settings - Lightweight GPU activity maintenance utility
-
 ## Enable or disable the system tray icon | 0 = Disabled | 1 = Enabled
 
 Tray=1
