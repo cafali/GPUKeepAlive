@@ -1,4 +1,5 @@
-<img width="1968" height="544" alt="asdsaasdsad" src="https://github.com/user-attachments/assets/57600688-23d2-4285-a016-eda072ea9372" />
+<img width="2172" height="633" alt="GPUKA" src="https://github.com/user-attachments/assets/f80d47b5-c262-4707-b5d8-bfaa38be66e7" />
+
 
 
 TLDR
