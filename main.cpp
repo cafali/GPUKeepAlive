@@ -400,7 +400,12 @@ static void ShowActiveGpuMessage(HWND hwnd)
 
 static void ShowVersionInfo(HWND hwnd)
 {
-    const std::wstring info = L"GPUKeepAlive\nVersion " + std::wstring(APP_VERSION);
+    const std::wstring info =
+        L"GPUKeepAlive\n"
+        L"Version " + std::wstring(APP_VERSION) +
+        L"\n\nGitHub: github.com/cafali/GPUKeepAlive"
+        L"\nLicense: MIT License"
+        L"\n2026";
     MessageBoxW(hwnd, info.c_str(), L"Version Info", MB_OK);
 }
 
@@ -445,8 +450,8 @@ static void ShowTrayMenu(HWND hwnd)
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_LICENSE, L"MIT LICENSE");
     AppendMenuW(menu, MF_STRING, ID_CHECK_UPDATES, L"Check Updates");
-    AppendMenuW(menu, MF_STRING, ID_VISIT_GITHUB, L"Visit GitHub");
-    AppendMenuW(menu, MF_STRING, ID_VERSION_INFO, L"Version Info");
+    AppendMenuW(menu, MF_STRING, ID_VISIT_GITHUB, L"Visit on GitHub");
+    AppendMenuW(menu, MF_STRING, ID_VERSION_INFO, L"Version Info (1.0.2)");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_HIDE_TRAY, L"Hide Tray Icon");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);

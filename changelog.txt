@@ -3,12 +3,10 @@ https://github.com/cafali/GPUKeepAlive
 ---------------------------
 1.0.2 - 11/2026
 
-Changed:
 - Interval configuration now uses the explicit `interval=<seconds>` format
 - Uninstall now removes GPUKeepAlive configuration and app data from %LOCALAPPDATA%\GPUKeepAlive
 - Consolidated GPU identification metadata in hardware.txt
-- Removed the redundant GPUid.txt file
-- Removed the information icon from the Active GPU window
+- Removed the GPUid.txt file
 - Added Version Info to the tray menu with the software name and current version
 
 ---------------------------
