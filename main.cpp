@@ -260,12 +260,19 @@ static void SaveIntervalSetting(int seconds)
 static void UpdateHardwareFile()
 {
     EnsureConfigDirectory();
-    const std::wstring hardwareFile = ConfigPath(L"hardware.txt");
+    const std::wstring gpuDataLog = ConfigPath(L"gpudata.log");
+    const std::wstring legacyPath = ConfigPath(L"hardware.txt");
+    if (!FileExists(gpuDataLog) && FileExists(legacyPath))
+    {
+        std::error_code ec;
+        std::filesystem::rename(legacyPath, gpuDataLog, ec);
+    }
+
     std::wstring hardwareText = L"GPU: " + g_gpuName + L"\n";
     hardwareText += L"GPU Identifier: " + g_gpuIdText + L"\n";
     hardwareText += L"GPUKeepAlive active\n";
 
-    WriteTextFile(hardwareFile, hardwareText);
+    WriteTextFile(gpuDataLog, hardwareText);
 
     std::error_code ec;
     std::filesystem::remove(ConfigPath(L"GPUid.txt"), ec);
