@@ -42,6 +42,7 @@ static constexpr UINT ID_RESTART = 2009;
 static constexpr UINT ID_EXIT = 2010;
 static constexpr UINT ID_PAUSE = 2011;
 static constexpr UINT ID_VERSION_INFO = 2012;
+static constexpr UINT ID_EDIT_CONFIG_FILE = 2013;
 
 static constexpr UINT ID_INTERVAL_30 = 2101;
 static constexpr UINT ID_INTERVAL_60 = 2102;
@@ -402,7 +403,8 @@ static void OpenSettingsFolder()
 
 static void OpenFileWithDefaultApp(const std::wstring& path)
 {
-    ShellExecuteW(nullptr, L"open", path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    if (reinterpret_cast<INT_PTR>(ShellExecuteW(nullptr, L"open", path.c_str(), nullptr, nullptr, SW_SHOWNORMAL)) <= 32)
+        ConfigError(L"Could not open set_gpukeepalive.ini with its default application.");
 }
 
 static bool IsTrayIconVisible()
@@ -546,7 +548,7 @@ static void HideTrayIcon()
         RestartApplication();
 }
 
-static void OpenIntervalConfigFile()
+static void OpenSettingsConfigFile()
 {
     OpenFileWithDefaultApp(ConfigPath(L"set_gpukeepalive.ini"));
 }
@@ -613,6 +615,7 @@ static void ShowTrayMenu(HWND hwnd)
     {
         AppendMenuW(goToMenu, MF_STRING, ID_OPEN_INSTALL_FOLDER, L"Installation Folder");
         AppendMenuW(goToMenu, MF_STRING, ID_OPEN_SETTINGS_FOLDER, L"Settings Folder");
+        AppendMenuW(goToMenu, MF_STRING, ID_EDIT_CONFIG_FILE, L"Edit Config File");
         AppendMenuW(menu, MF_POPUP | MF_STRING, reinterpret_cast<UINT_PTR>(goToMenu), L"Go to");
     }
     
@@ -939,8 +942,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             if (SaveSetting("Interval", 3600))
                 RestartApplication();
         }
-        else if (id == ID_INTERVAL_CUSTOM)
-            OpenIntervalConfigFile();
+        else if (id == ID_INTERVAL_CUSTOM || id == ID_EDIT_CONFIG_FILE)
+            OpenSettingsConfigFile();
         else if (id == ID_EXIT)
             DestroyWindow(hwnd);
 
