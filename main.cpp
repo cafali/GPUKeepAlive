@@ -32,10 +32,12 @@ static constexpr UINT ID_ACTIVE_GPU = 2001;
 static constexpr UINT ID_CFG_FOLDER = 2002;
 static constexpr UINT ID_CHECK_UPDATES = 2004;
 static constexpr UINT ID_VISIT_GITHUB = 2005;
-static constexpr UINT ID_HIDE_TRAY = 2006;
-static constexpr UINT ID_RESTART = 2007;
-static constexpr UINT ID_EXIT = 2008;
-static constexpr UINT ID_PAUSE = 2010;
+static constexpr UINT ID_OPEN_INSTALL_FOLDER = 2006;
+static constexpr UINT ID_OPEN_SETTINGS_FOLDER = 2007;
+static constexpr UINT ID_HIDE_TRAY = 2008;
+static constexpr UINT ID_RESTART = 2009;
+static constexpr UINT ID_EXIT = 2010;
+static constexpr UINT ID_PAUSE = 2011;
 static constexpr UINT ID_VERSION_INFO = 2009;
 
 static constexpr UINT ID_INTERVAL_30 = 2101;
@@ -275,7 +277,13 @@ static void UpdateHardwareFile()
     std::filesystem::remove(ConfigPath(L"GPUid.txt"), ec);
 }
 
-static void OpenConfigFolder()
+static void OpenInstallationFolder()
+{
+    std::wstring installPath = AppDir();
+    ShellExecuteW(nullptr, L"open", installPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+
+static void OpenSettingsFolder()
 {
     EnsureConfigDirectory();
     ShellExecuteW(nullptr, L"open", ConfigDir().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
@@ -493,7 +501,15 @@ static void ShowTrayMenu(HWND hwnd)
 
     AppendMenuW(menu, MF_STRING, ID_ACTIVE_GPU, L"Active GPU");
     AppendMenuW(menu, MF_POPUP | MF_STRING, reinterpret_cast<UINT_PTR>(intervalMenu), L"Set GPU Interval");
-    AppendMenuW(menu, MF_STRING, ID_CFG_FOLDER, L"Settings Folder");
+    
+    HMENU goToMenu = CreatePopupMenu();
+    if (goToMenu)
+    {
+        AppendMenuW(goToMenu, MF_STRING, ID_OPEN_INSTALL_FOLDER, L"Installation Folder");
+        AppendMenuW(goToMenu, MF_STRING, ID_OPEN_SETTINGS_FOLDER, L"Settings Folder");
+        AppendMenuW(menu, MF_POPUP | MF_STRING, reinterpret_cast<UINT_PTR>(goToMenu), L"Go to");
+    }
+    
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_CHECK_UPDATES, L"Check Updates");
     AppendMenuW(menu, MF_STRING, ID_VISIT_GITHUB, L"Visit on GitHub");
@@ -759,8 +775,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
         if (id == ID_ACTIVE_GPU)
             ShowActiveGpuMessage(hwnd);
-        else if (id == ID_CFG_FOLDER)
-            OpenConfigFolder();
+        else if (id == ID_OPEN_INSTALL_FOLDER)
+            OpenInstallationFolder();
+        else if (id == ID_OPEN_SETTINGS_FOLDER)
+            OpenSettingsFolder();
         else if (id == ID_CHECK_UPDATES)
             ShellExecuteW(nullptr, L"open", L"https://github.com/cafali/GPUKeepAlive/releases", nullptr, nullptr, SW_SHOWNORMAL);
         else if (id == ID_VISIT_GITHUB)
