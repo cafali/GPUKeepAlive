@@ -91,8 +91,9 @@ Startup Setup
 
 <img width="1282" height="112" alt="image" src="https://github.com/user-attachments/assets/814b778d-b8c0-4e17-a091-e923aec0fb2e" />
 
-Run Uninstall.bat as administrator to remove the scheduled task and installed
-folder. 
+Run Uninstall.bat as administrator to remove the scheduled task, installed
+folder, and GPUKeepAlive app data (including tray.ini and interval.cfg) from
+%LOCALAPPDATA%\GPUKeepAlive.
 > [!NOTE]
 >The portable executable can also be run directly without setup. (NOT RECOMMENDED)
 

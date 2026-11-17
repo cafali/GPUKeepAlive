@@ -32,13 +32,23 @@ if exist "%APP_DIR%" (
     rmdir /S /Q "%APP_DIR%"
 )
 
+:: Remove user-specific configuration and metadata
+if exist "%CONFIG_DIR%" (
+    rmdir /S /Q "%CONFIG_DIR%"
+)
+
+if exist "%CONFIG_DIR%" (
+    echo Failed to remove configuration files in "%CONFIG_DIR%".
+    pause
+    exit /b 1
+)
+
 echo.
 echo GPUKeepAlive installation removed.
 echo - Running process terminated.
 echo - Scheduled task removed.
 echo - Start menu shortcut removed.
-echo - Configuration files in %CONFIG_DIR% were left in place.
-echo - Reinstalling will preserve your existing local configuration when available.
+echo - Configuration and app data in %CONFIG_DIR% removed.
 
 echo.
 echo GPUKeepAlive successfully uninstalled.
