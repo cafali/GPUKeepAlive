@@ -82,8 +82,10 @@ Startup Setup
 2. Right-click Setup.bat and choose Run as administrator
 3. Setup installs the app to %ProgramData%\GPUKeepAlive and creates the required
    LocalAppData configuration folder at %LOCALAPPDATA%\GPUKeepAlive
-4. The app creates and maintains tray.ini and interval.cfg under the LocalAppData
-   configuration directory, keeping user settings safe across restarts and reboots
+4. The app creates and maintains tray.ini, interval.cfg, and hardware.txt under the
+   LocalAppData configuration directory, keeping user settings safe across restarts
+   and reboots. The interval is configured as `interval=<seconds>` (for example,
+   `interval=120`).
 5. A Task Scheduler logon task is created for the interactive logged-in user
    (not SYSTEM)
 

@@ -25,7 +25,7 @@ if not exist "%LOCALCFG%\interval.cfg" (
 	> "%LOCALCFG%\interval.cfg" echo ; GPUKeepAlive refresh interval
 	>> "%LOCALCFG%\interval.cfg" echo ; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.
 	>> "%LOCALCFG%\interval.cfg" echo ; Default: 120
-	>> "%LOCALCFG%\interval.cfg" echo 120
+	>> "%LOCALCFG%\interval.cfg" echo interval=120
 )
 
 if not exist "%DEST%" mkdir "%DEST%" || exit /b 1
@@ -49,10 +49,12 @@ set "STARTMENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs\GPUKeepAlive Serv
 set "SHORTCUT_TARGET=%DEST%\GPUKeepAlive.exe"
 
 powershell -NoProfile -Command "$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%STARTMENU%'); $Shortcut.TargetPath = '%SHORTCUT_TARGET%'; $Shortcut.WorkingDirectory = '%DEST%'; $Shortcut.IconLocation = '%SHORTCUT_TARGET%,0'; $Shortcut.Save()" >nul 2>&1
-
+echo -----------------------------------
 echo Installed to: %DEST%
 echo Startup task created. It will run at the next user logon.
 echo Start Menu shortcut created: GPUKeepAlive Service
-
-explorer "%DEST%"
+color a
+echo -----------------------------------
+echo GPUKeepAlive installed
+start "" "%DEST%\GPUKeepAlive.exe"
 pause

@@ -36,6 +36,7 @@ static constexpr UINT ID_VISIT_GITHUB = 2005;
 static constexpr UINT ID_HIDE_TRAY = 2006;
 static constexpr UINT ID_RESTART = 2007;
 static constexpr UINT ID_EXIT = 2008;
+static constexpr UINT ID_VERSION_INFO = 2009;
 
 static constexpr UINT ID_INTERVAL_30 = 2101;
 static constexpr UINT ID_INTERVAL_60 = 2102;
@@ -46,6 +47,7 @@ static constexpr UINT ID_INTERVAL_CUSTOM = 2106;
 
 static constexpr UINT NVIDIA_VENDOR_ID = 0x10DE;
 static constexpr int DEFAULT_INTERVAL_SECONDS = 120;
+static constexpr wchar_t APP_VERSION[] = L"1.0.2";
 
 static std::atomic<bool> g_running{true};
 static std::atomic<bool> g_renderOk{false};
@@ -170,7 +172,7 @@ static void EnsureDefaultIntervalConfig()
         L"; GPUKeepAlive refresh interval\n"
         L"; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.\n"
         L"; Default: 120\n"
-        L"120\n";
+        L"interval=120\n";
 
     WriteTextFile(path, content);
 }
@@ -237,24 +239,24 @@ static void SaveIntervalSetting(int seconds)
         L"; GPUKeepAlive refresh interval\n"
         L"; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.\n"
         L"; Default: 120\n"
-        + std::to_wstring(static_cast<long long>(safeSeconds)) + L"\n";
+        L"interval=" + std::to_wstring(static_cast<long long>(safeSeconds)) + L"\n";
 
     WriteTextFile(path, content);
     g_gpuIntervalSeconds.store(safeSeconds);
 }
 
-static void UpdateGPUIdFile()
+static void UpdateHardwareFile()
 {
     EnsureConfigDirectory();
-    const std::wstring gpuFile = ConfigPath(L"GPUid.txt");
-    WriteTextFile(gpuFile, g_gpuIdText + L"\n");
-
     const std::wstring hardwareFile = ConfigPath(L"hardware.txt");
     std::wstring hardwareText = L"GPU: " + g_gpuName + L"\n";
     hardwareText += L"GPU Identifier: " + g_gpuIdText + L"\n";
     hardwareText += L"GPUKeepAlive active\n";
 
     WriteTextFile(hardwareFile, hardwareText);
+
+    std::error_code ec;
+    std::filesystem::remove(ConfigPath(L"GPUid.txt"), ec);
 }
 
 static void OpenConfigFolder()
@@ -393,7 +395,13 @@ static void OpenIntervalConfigFile()
 static void ShowActiveGpuMessage(HWND hwnd)
 {
     const std::wstring info = L"GPU: " + g_gpuName + L"\n\nGPUKeepAlive is currently using this GPU.";
-    MessageBoxW(hwnd, info.c_str(), L"Active GPU", MB_OK | MB_ICONINFORMATION);
+    MessageBoxW(hwnd, info.c_str(), L"Active GPU", MB_OK);
+}
+
+static void ShowVersionInfo(HWND hwnd)
+{
+    const std::wstring info = L"GPUKeepAlive\nVersion " + std::wstring(APP_VERSION);
+    MessageBoxW(hwnd, info.c_str(), L"Version Info", MB_OK);
 }
 
 static void ConfirmHideTrayIcon(HWND hwnd)
@@ -438,6 +446,7 @@ static void ShowTrayMenu(HWND hwnd)
     AppendMenuW(menu, MF_STRING, ID_LICENSE, L"MIT LICENSE");
     AppendMenuW(menu, MF_STRING, ID_CHECK_UPDATES, L"Check Updates");
     AppendMenuW(menu, MF_STRING, ID_VISIT_GITHUB, L"Visit GitHub");
+    AppendMenuW(menu, MF_STRING, ID_VERSION_INFO, L"Version Info");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_HIDE_TRAY, L"Hide Tray Icon");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
@@ -597,7 +606,7 @@ static bool InitGpu()
     );
     g_gpuIdText = idBuffer;
 
-    UpdateGPUIdFile();
+    UpdateHardwareFile();
 
     D3D11_TEXTURE2D_DESC td{};
     td.Width = 64;
@@ -710,6 +719,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             ShellExecuteW(nullptr, L"open", L"https://github.com/cafali/GPUKeepAlive/releases", nullptr, nullptr, SW_SHOWNORMAL);
         else if (id == ID_VISIT_GITHUB)
             ShellExecuteW(nullptr, L"open", L"https://github.com/cafali/GPUKeepAlive", nullptr, nullptr, SW_SHOWNORMAL);
+        else if (id == ID_VERSION_INFO)
+            ShowVersionInfo(hwnd);
         else if (id == ID_HIDE_TRAY)
             ConfirmHideTrayIcon(hwnd);
         else if (id == ID_RESTART)

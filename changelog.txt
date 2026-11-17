@@ -1,13 +1,22 @@
 GPUKeepAlive - Changelog
 https://github.com/cafali/GPUKeepAlive
 ---------------------------
+1.0.2 - 11/2026
+
+Changed:
+- Interval configuration now uses the explicit `interval=<seconds>` format
+- Consolidated GPU identification metadata in `hardware.txt`
+- Removed the redundant `GPUid.txt` file
+- Removed the information icon from the Active GPU window
+- Added Version Info to the tray menu with the software name and current version
+
+---------------------------
 1.0.1 - 11/2026
 
 Added:
 - Added GPU refresh interval configuration with support for 30 seconds, 1, 2, 5, and 10 minutes
 - Added a custom interval configuration option through `interval.cfg`
 - Added persistent configuration storage in `%LOCALAPPDATA%\GPUKeepAlive`
-- Added GPU identification tracking through `GPUid.txt`
 - Added hardware information storage through `hardware.txt`
 - Added a dedicated GPU information menu entry
 - Added a configuration folder shortcut to the system tray menu
@@ -57,4 +66,3 @@ Configuration:
   - Tray=0 – Disables the system tray icon
 - Tray visibility can be configured without modifying the executable
 ---------------------------
-
