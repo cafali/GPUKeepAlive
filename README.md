@@ -100,7 +100,9 @@ folder, and GPUKeepAlive app data (including tray.ini and interval.cfg) from
 
 Run
 ------------------------------------
-LOGOUT or RESTART your PC, GPUKeepAlive.exe should start automatically via Task Scheduler. It starts in the background. 
+Setup starts GPUKeepAlive.exe when installation completes, so you do not need to
+log out or restart to start it. The Task Scheduler logon task also starts it
+automatically at future user logons. It runs in the background.
 If %LOCALAPPDATA%\GPUKeepAlive\tray.ini shows Tray=1, a notification-area icon is shown.
 
 You can also run the "GPUKeepAlive" Task Scheduler entry manually to start it immediately.
