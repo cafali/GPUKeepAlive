@@ -48,7 +48,7 @@ echo GPUKeepAlive installation removed.
 echo - Running process terminated.
 echo - Scheduled task removed.
 echo - Start menu shortcut removed.
-echo - Configuration and app data in %CONFIG_DIR% removed.
+echo - set_gpukeepalive.ini and app data in %CONFIG_DIR% removed.
 
 echo.
 echo GPUKeepAlive successfully uninstalled.

@@ -9,7 +9,10 @@
 
 #include <atomic>
 #include <algorithm>
+#include <cerrno>
 #include <chrono>
+#include <climits>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -52,7 +55,7 @@ static constexpr UINT ID_INTERVAL_3600 = 2109;
 
 static constexpr UINT NVIDIA_VENDOR_ID = 0x10DE;
 static constexpr int DEFAULT_INTERVAL_SECONDS = 120;
-static constexpr wchar_t APP_VERSION[] = L"1.0.3";
+static constexpr wchar_t APP_VERSION[] = L"1.0.4";
 
 static std::atomic<bool> g_running{true};
 static std::atomic<bool> g_renderOk{false};
@@ -129,131 +132,239 @@ static void WriteTextFile(const std::wstring& path, const std::wstring& content)
         stream << content;
 }
 
-static std::wstring TrimString(const std::wstring& value)
+static std::string TrimString(const std::string& value)
 {
-    const auto start = value.find_first_not_of(L" \t\r\n");
-    if (start == std::wstring::npos)
-        return L"";
+    const auto start = value.find_first_not_of(" \t\r\n");
+    if (start == std::string::npos)
+        return "";
 
-    const auto end = value.find_last_not_of(L" \t\r\n");
+    const auto end = value.find_last_not_of(" \t\r\n");
     return value.substr(start, end - start + 1);
 }
 
-static std::wstring ExtractValueAfterEquals(const std::wstring& line)
+static bool ReadConfigLines(const std::wstring& path, std::vector<std::string>& lines)
 {
-    const auto pos = line.find(L'=' );
-    if (pos == std::wstring::npos)
-        return L"";
-
-    return TrimString(line.substr(pos + 1));
+    std::ifstream stream(std::filesystem::path(path), std::ios::binary);
+    if (!stream.is_open())
+        return false;
+    std::string line;
+    while (std::getline(stream, line))
+        lines.push_back(line);
+    return !stream.bad();
 }
 
-static void EnsureDefaultTrayConfig()
+static bool ParseInteger(const std::string& value, long& result)
 {
-    EnsureConfigDirectory();
-    const std::wstring path = ConfigPath(L"tray.ini");
-    if (FileExists(path))
-        return;
-
-    const std::wstring content =
-        L"[General]\n"
-        L"Tray=1\n";
-
-    WriteTextFile(path, content);
+    errno = 0;
+    char* end = nullptr;
+    result = std::strtol(value.c_str(), &end, 10);
+    return end != value.c_str() && *end == '\0' && errno != ERANGE;
 }
 
-static void EnsureDefaultIntervalConfig()
+static bool FindSetting(const std::vector<std::string>& lines, const char* key, std::string& value)
 {
-    EnsureConfigDirectory();
-    const std::wstring path = ConfigPath(L"interval.ini");
-    if (FileExists(path))
-        return;
-
-    const std::wstring legacyPath = ConfigPath(L"interval.cfg");
-    if (FileExists(legacyPath))
+    for (const auto& line : lines)
     {
-        std::error_code ec;
-        std::filesystem::rename(legacyPath, path, ec);
-        return;
+        std::string trimmed = TrimString(line);
+        if (trimmed.compare(0, 3, "\xEF\xBB\xBF") == 0)
+            trimmed = TrimString(trimmed.substr(3));
+        if (trimmed.empty() || trimmed[0] == '#' || trimmed[0] == ';')
+            continue;
+        const auto equals = trimmed.find('=');
+        if (equals != std::string::npos && _stricmp(TrimString(trimmed.substr(0, equals)).c_str(), key) == 0)
+        {
+            value = TrimString(trimmed.substr(equals + 1));
+            return true;
+        }
     }
-
-    const std::wstring content =
-        L"# GPUKeepAlive refresh interval\n"
-        L"# Presets: 15, 30, 60, 120, 300, 600, 1800, 3600 seconds; any positive number is also allowed.\n"
-        L"# Default value: 120\n\n"
-        L"interval=120\n";
-
-    WriteTextFile(path, content);
+    return false;
 }
 
-static bool TraySetting()
+static void ConfigError(const wchar_t* message)
 {
-    EnsureConfigDirectory();
-    EnsureDefaultTrayConfig();
-
-    const std::wstring path = ConfigPath(L"tray.ini");
-    wchar_t value[16] = L"1";
-    GetPrivateProfileStringW(L"General", L"Tray", L"1", value, 16, path.c_str());
-    return wcstol(value, nullptr, 10) != 0;
+    MessageBoxW(nullptr, message, L"GPUKeepAlive - Settings Error", MB_OK | MB_ICONERROR);
 }
 
-static void SaveTraySetting(bool visible)
+static bool WriteConfigLines(const std::vector<std::string>& lines)
 {
-    EnsureConfigDirectory();
-    const std::wstring path = ConfigPath(L"tray.ini");
-    const std::wstring content = L"[General]\nTray=" + std::wstring(visible ? L"1" : L"0") + L"\n";
-    WriteTextFile(path, content);
-    g_trayVisible.store(visible);
+    wchar_t temporary[MAX_PATH]{};
+    if (!GetTempFileNameW(ConfigDir().c_str(), L"gka", 0, temporary))
+        return false;
+
+    bool written = false;
+    {
+        std::ofstream stream(std::filesystem::path(temporary), std::ios::binary | std::ios::trunc);
+        if (stream.is_open())
+        {
+            for (const auto& line : lines)
+                stream << line << '\n';
+            stream.close();
+            written = !stream.fail();
+        }
+    }
+    if (written)
+        written = MoveFileExW(temporary, ConfigPath(L"set_gpukeepalive.ini").c_str(),
+                              MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+    if (!written)
+        DeleteFileW(temporary);
+    return written;
 }
 
-static int ReadIntervalSetting()
+static bool EnsureSettingsConfig()
 {
-    EnsureConfigDirectory();
-    EnsureDefaultIntervalConfig();
+    std::error_code ec;
+    std::filesystem::create_directories(ConfigDir(), ec);
+    if (ec)
+        return false;
+    if (FileExists(ConfigPath(L"set_gpukeepalive.ini")))
+        return true;
 
+    long tray = 1;
+    long interval = DEFAULT_INTERVAL_SECONDS;
+    const std::wstring trayPath = ConfigPath(L"tray.ini");
     std::wstring intervalPath = ConfigPath(L"interval.ini");
     if (!FileExists(intervalPath))
         intervalPath = ConfigPath(L"interval.cfg");
-    std::wifstream stream(intervalPath.c_str());
-    if (!stream.is_open())
-        return DEFAULT_INTERVAL_SECONDS;
 
-    std::wstring line;
-    while (std::getline(stream, line))
+    std::vector<std::string> lines;
+    std::string value;
+    long parsed = 0;
+    if (FileExists(trayPath))
     {
-        std::wstring trimmed = TrimString(line);
-        if (trimmed.empty() || trimmed[0] == L';' || trimmed[0] == L'#')
-            continue;
-
-        if (trimmed.find(L'=') != std::wstring::npos)
-            trimmed = ExtractValueAfterEquals(trimmed);
-
-        if (trimmed.empty())
-            continue;
-
-        wchar_t* end = nullptr;
-        long value = std::wcstol(trimmed.c_str(), &end, 10);
-        if (end != trimmed.c_str() && value > 0)
-            return static_cast<int>(value);
+        if (!ReadConfigLines(trayPath, lines))
+            return false;
+        if (FindSetting(lines, "Tray", value) && !value.empty())
+        {
+            if (!ParseInteger(value, parsed))
+                return false;
+            tray = parsed != 0 ? 1 : 0;
+        }
+    }
+    if (FileExists(intervalPath))
+    {
+        lines.clear();
+        if (!ReadConfigLines(intervalPath, lines))
+            return false;
+        bool hasValue = false;
+        bool foundValue = false;
+        for (const auto& line : lines)
+        {
+            value = TrimString(line);
+            if (value.compare(0, 3, "\xEF\xBB\xBF") == 0)
+                value = TrimString(value.substr(3));
+            if (value.empty() || value[0] == '#' || value[0] == ';' || value[0] == '[')
+                continue;
+            const auto equals = value.find('=');
+            if (equals != std::string::npos)
+                value = TrimString(value.substr(equals + 1));
+            if (value.empty())
+                continue;
+            hasValue = true;
+            errno = 0;
+            char* end = nullptr;
+            parsed = std::strtol(value.c_str(), &end, 10);
+            if (end != value.c_str() && errno != ERANGE && parsed > 0 && parsed <= INT_MAX)
+            {
+                interval = parsed;
+                foundValue = true;
+                break;
+            }
+        }
+        if (hasValue && !foundValue)
+            return false;
     }
 
-    return DEFAULT_INTERVAL_SECONDS;
+    lines = {
+        "## GPUKeepAlive Settings - Lightweight GPU activity maintenance utility",
+        "",
+        "## Enable or disable the system tray icon | 0 = Disabled | 1 = Enabled",
+        "",
+        "Tray=" + std::to_string(tray),
+        "",
+        "## Rendering interval in seconds | Default value is 120 (120s/2min)",
+        "",
+        "Interval=" + std::to_string(interval)
+    };
+    if (!WriteConfigLines(lines))
+        return false;
+
+    for (const auto& legacyPath : {trayPath, intervalPath})
+    {
+        ec.clear();
+        std::filesystem::remove(legacyPath, ec);
+        if (ec)
+            ConfigError(L"Settings were migrated, but an old configuration file could not be removed.");
+    }
+    return true;
 }
 
-static void SaveIntervalSetting(int seconds)
+static bool LoadSettings()
 {
-    const int safeSeconds = std::max(1, seconds);
-    EnsureConfigDirectory();
+    std::vector<std::string> lines;
+    if (!ReadConfigLines(ConfigPath(L"set_gpukeepalive.ini"), lines))
+    {
+        ConfigError(L"Could not read set_gpukeepalive.ini.");
+        return false;
+    }
 
-    const std::wstring path = ConfigPath(L"interval.ini");
-    const std::wstring content =
-        L"# GPUKeepAlive refresh interval\n"
-        L"# Presets: 15, 30, 60, 120, 300, 600, 1800, 3600 seconds; any positive number is also allowed.\n"
-        L"# Default value: 120 (2 minutes)\n\n"
-        L"interval=" + std::to_wstring(static_cast<long long>(safeSeconds)) + L"\n";
+    std::string value;
+    long parsed = 0;
+    if (FindSetting(lines, "Tray", value) && !value.empty())
+    {
+        if (!ParseInteger(value, parsed) || (parsed != 0 && parsed != 1))
+        {
+            ConfigError(L"Tray must be 0 or 1 in set_gpukeepalive.ini.");
+            return false;
+        }
+        g_trayVisible.store(parsed == 1);
+    }
+    if (FindSetting(lines, "Interval", value) && !value.empty())
+    {
+        if (!ParseInteger(value, parsed) || parsed <= 0 || parsed > INT_MAX)
+        {
+            ConfigError(L"Interval must be a positive number of seconds in set_gpukeepalive.ini.");
+            return false;
+        }
+        g_gpuIntervalSeconds.store(static_cast<int>(parsed));
+    }
+    return true;
+}
 
-    WriteTextFile(path, content);
-    g_gpuIntervalSeconds.store(safeSeconds);
+static bool SaveSetting(const char* key, int value)
+{
+    std::vector<std::string> lines;
+    if (!ReadConfigLines(ConfigPath(L"set_gpukeepalive.ini"), lines))
+    {
+        ConfigError(L"Could not read set_gpukeepalive.ini. The setting was not changed.");
+        return false;
+    }
+    bool found = false;
+    for (auto& line : lines)
+    {
+        std::string trimmed = TrimString(line);
+        const bool hasBom = trimmed.compare(0, 3, "\xEF\xBB\xBF") == 0;
+        if (hasBom)
+            trimmed = TrimString(trimmed.substr(3));
+        if (trimmed.empty() || trimmed[0] == '#' || trimmed[0] == ';')
+            continue;
+        const auto equals = trimmed.find('=');
+        if (equals != std::string::npos && _stricmp(TrimString(trimmed.substr(0, equals)).c_str(), key) == 0)
+        {
+            const bool hadCarriageReturn = !line.empty() && line.back() == '\r';
+            line = (hasBom ? "\xEF\xBB\xBF" : "") + std::string(key) + "=" +
+                std::to_string(value) + (hadCarriageReturn ? "\r" : "");
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+        lines.push_back(std::string(key) + "=" + std::to_string(value));
+    if (!WriteConfigLines(lines))
+    {
+        ConfigError(L"Could not write set_gpukeepalive.ini. The setting was not changed.");
+        return false;
+    }
+    return true;
 }
 
 static void UpdateHardwareFile()
@@ -431,18 +542,13 @@ static void HideTrayIcon()
     if (!g_trayVisible.load())
         return;
 
-    SaveTraySetting(false);
-    RestartApplication();
+    if (SaveSetting("Tray", 0))
+        RestartApplication();
 }
 
 static void OpenIntervalConfigFile()
 {
-    EnsureConfigDirectory();
-    EnsureDefaultIntervalConfig();
-    std::wstring path = ConfigPath(L"interval.ini");
-    if (!FileExists(path))
-        path = ConfigPath(L"interval.cfg");
-    OpenFileWithDefaultApp(path);
+    OpenFileWithDefaultApp(ConfigPath(L"set_gpukeepalive.ini"));
 }
 
 static void ShowActiveGpuMessage(HWND hwnd)
@@ -795,43 +901,43 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             RestartApplication();
         else if (id == ID_INTERVAL_30)
         {
-            SaveIntervalSetting(30);
-            RestartApplication();
+            if (SaveSetting("Interval", 30))
+                RestartApplication();
         }
         else if (id == ID_INTERVAL_60)
         {
-            SaveIntervalSetting(60);
-            RestartApplication();
+            if (SaveSetting("Interval", 60))
+                RestartApplication();
         }
         else if (id == ID_INTERVAL_120)
         {
-            SaveIntervalSetting(120);
-            RestartApplication();
+            if (SaveSetting("Interval", 120))
+                RestartApplication();
         }
         else if (id == ID_INTERVAL_300)
         {
-            SaveIntervalSetting(300);
-            RestartApplication();
+            if (SaveSetting("Interval", 300))
+                RestartApplication();
         }
         else if (id == ID_INTERVAL_600)
         {
-            SaveIntervalSetting(600);
-            RestartApplication();
+            if (SaveSetting("Interval", 600))
+                RestartApplication();
         }
         else if (id == ID_INTERVAL_15)
         {
-            SaveIntervalSetting(15);
-            RestartApplication();
+            if (SaveSetting("Interval", 15))
+                RestartApplication();
         }
         else if (id == ID_INTERVAL_1800)
         {
-            SaveIntervalSetting(1800);
-            RestartApplication();
+            if (SaveSetting("Interval", 1800))
+                RestartApplication();
         }
         else if (id == ID_INTERVAL_3600)
         {
-            SaveIntervalSetting(3600);
-            RestartApplication();
+            if (SaveSetting("Interval", 3600))
+                RestartApplication();
         }
         else if (id == ID_INTERVAL_CUSTOM)
             OpenIntervalConfigFile();
@@ -867,10 +973,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     icc.dwICC = ICC_STANDARD_CLASSES;
     InitCommonControlsEx(&icc);
 
-    EnsureConfigDirectory();
-    EnsureDefaultTrayConfig();
-    EnsureDefaultIntervalConfig();
-
     g_taskbarCreatedMsg = RegisterWindowMessageW(L"TaskbarCreated");
 
     HANDLE mutex = CreateMutexW(nullptr, TRUE, L"Local\\GPUKeepAlive_SingleInstance");
@@ -881,8 +983,19 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
         return 0;
     }
 
-    g_trayVisible.store(TraySetting());
-    g_gpuIntervalSeconds.store(ReadIntervalSetting());
+    if (!EnsureSettingsConfig())
+    {
+        ConfigError(L"Could not create set_gpukeepalive.ini or migrate the existing settings. Check the settings files and folder permissions.");
+        ReleaseMutex(mutex);
+        CloseHandle(mutex);
+        return 1;
+    }
+    if (!LoadSettings())
+    {
+        ReleaseMutex(mutex);
+        CloseHandle(mutex);
+        return 1;
+    }
 
     WNDCLASSW wc{};
     wc.lpfnWndProc = WndProc;

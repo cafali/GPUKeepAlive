@@ -84,16 +84,16 @@ Startup Setup
 2. Right-click Setup.bat and choose Run as administrator
 3. Setup installs the app to %ProgramData%\GPUKeepAlive and creates the required
    LocalAppData configuration folder at %LOCALAPPDATA%\GPUKeepAlive
-4. The app creates and maintains tray.ini, interval.ini, and gpudata.log under the
+4. The app creates and maintains set_gpukeepalive.ini and gpudata.log under the
    LocalAppData configuration directory, keeping user settings safe across restarts
-   and reboots. The interval is configured as `interval=<seconds>` (for example,
-   `interval=120`).
+   and reboots. Existing tray.ini and interval.ini (or interval.cfg) settings are
+   migrated automatically on first startup.
 5. A Task Scheduler logon task is created for the interactive logged-in user
 
 <img width="1282" height="112" alt="image" src="https://github.com/user-attachments/assets/814b778d-b8c0-4e17-a091-e923aec0fb2e" />
 
 Run Uninstall.bat as administrator to remove the scheduled task, installed
-folder, and GPUKeepAlive app data (including tray.ini and interval.ini) from
+folder, and GPUKeepAlive app data (including set_gpukeepalive.ini) from
 %LOCALAPPDATA%\GPUKeepAlive.
 
 Run
@@ -101,7 +101,7 @@ Run
 Setup starts GPUKeepAlive.exe when installation completes, so you do not need to
 log out or restart to start it. The Task Scheduler logon task also starts it
 automatically at future user logons. It runs in the background.
-If %LOCALAPPDATA%\GPUKeepAlive\tray.ini shows Tray=1, a notification-area icon is shown.
+If %LOCALAPPDATA%\GPUKeepAlive\set_gpukeepalive.ini shows Tray=1, a notification-area icon is shown.
 
 You can also run the "GPUKeepAlive" Task Scheduler entry manually to start it immediately.
 
@@ -115,13 +115,26 @@ You can also run the "GPUKeepAlive" Task Scheduler entry manually to start it im
 
 
 
-tray.ini
+set_gpukeepalive.ini
 ------------------------------------
-[General]
+```ini
+## GPUKeepAlive Settings - Lightweight GPU activity maintenance utility
+
+## Enable or disable the system tray icon | 0 = Disabled | 1 = Enabled
+
 Tray=1
 
-Set Tray=1 to show the icon, or Tray=0 to hide it. The file lives in
-%LOCALAPPDATA%\GPUKeepAlive\tray.ini and is read automatically after restart.
+## Rendering interval in seconds | Default value is 120 (120s/2min)
+
+Interval=120
+```
+
+Set `Tray=1` to show the icon, or `Tray=0` to hide it. Set `Interval` to a
+positive whole number of seconds up to 2147483647. Empty or missing settings use
+the defaults (`Tray=1` and `Interval=120`); invalid values prevent startup and
+show an error. The file lives in
+%LOCALAPPDATA%\GPUKeepAlive\set_gpukeepalive.ini and is read after restart.
+The tray menu can also change the interval or open the settings file via Custom.
 
 System Requirements
 ------------------------------------
