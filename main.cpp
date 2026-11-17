@@ -589,10 +589,13 @@ static void ShowTrayMenu(HWND hwnd)
 {
     HMENU menu = CreatePopupMenu();
     HMENU intervalMenu = CreatePopupMenu();
-    if (!menu || !intervalMenu)
+    HMENU appMenu = CreatePopupMenu();
+    if (!menu || !intervalMenu || !appMenu)
     {
         if (menu) DestroyMenu(menu);
         if (intervalMenu) DestroyMenu(intervalMenu);
+        if (appMenu) DestroyMenu(appMenu);
+        MessageBoxW(hwnd, L"Could not create the tray menu.", L"GPUKeepAlive - Error", MB_OK | MB_ICONERROR);
         return;
     }
 
@@ -621,10 +624,11 @@ static void ShowTrayMenu(HWND hwnd)
     }
     
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(menu, MF_STRING, ID_CHECK_UPDATES, L"Check Updates");
-    AppendMenuW(menu, MF_STRING, ID_VISIT_GITHUB, L"Visit on GitHub");
+    AppendMenuW(appMenu, MF_STRING, ID_CHECK_UPDATES, L"Check Updates");
+    AppendMenuW(appMenu, MF_STRING, ID_VISIT_GITHUB, L"Visit on GitHub");
     const std::wstring versionLabel = L"Version Info (" + std::wstring(APP_VERSION) + L")";
-    AppendMenuW(menu, MF_STRING, ID_VERSION_INFO, versionLabel.c_str());
+    AppendMenuW(appMenu, MF_STRING, ID_VERSION_INFO, versionLabel.c_str());
+    AppendMenuW(menu, MF_POPUP | MF_STRING, reinterpret_cast<UINT_PTR>(appMenu), L"GPUKeepAlive");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_HIDE_TRAY, L"Hide Tray Icon");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
