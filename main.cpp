@@ -30,7 +30,6 @@ static constexpr UINT WM_TRAY = WM_APP + 1;
 static constexpr UINT ID_TRAY = 1001;
 static constexpr UINT ID_ACTIVE_GPU = 2001;
 static constexpr UINT ID_CFG_FOLDER = 2002;
-static constexpr UINT ID_LICENSE = 2003;
 static constexpr UINT ID_CHECK_UPDATES = 2004;
 static constexpr UINT ID_VISIT_GITHUB = 2005;
 static constexpr UINT ID_HIDE_TRAY = 2006;
@@ -439,22 +438,21 @@ static void ShowTrayMenu(HWND hwnd)
         return;
     }
 
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_15, L"15 seconds");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_30, L"30 seconds");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_60, L"1 minute");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_120, L"2 minutes");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_300, L"5 minutes");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_600, L"10 minutes");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_1800, L"30 minutes");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_3600, L"60 minutes");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_15, L"15 sec");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_30, L"30 sec");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_60, L"1 min");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_120, L"2 min (default)");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_300, L"5 min");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_600, L"10 min");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_1800, L"30 min");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_3600, L"60 min");
     AppendMenuW(intervalMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_CUSTOM, L"Custom...");
 
-    AppendMenuW(menu, MF_POPUP | MF_STRING, reinterpret_cast<UINT_PTR>(intervalMenu), L"Set GPU Interval");
     AppendMenuW(menu, MF_STRING, ID_ACTIVE_GPU, L"Active GPU");
+    AppendMenuW(menu, MF_POPUP | MF_STRING, reinterpret_cast<UINT_PTR>(intervalMenu), L"Set GPU Interval");
     AppendMenuW(menu, MF_STRING, ID_CFG_FOLDER, L"CFG Folder");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(menu, MF_STRING, ID_LICENSE, L"MIT LICENSE");
     AppendMenuW(menu, MF_STRING, ID_CHECK_UPDATES, L"Check Updates");
     AppendMenuW(menu, MF_STRING, ID_VISIT_GITHUB, L"Visit on GitHub");
     AppendMenuW(menu, MF_STRING, ID_VERSION_INFO, L"Version Info (1.0.2)");
@@ -476,13 +474,6 @@ static void RestartApplication()
     g_restartRequested.store(true);
     if (g_hwnd)
         DestroyWindow(g_hwnd);
-}
-
-static void OpenLicenseFile()
-{
-    const std::wstring licensePath = AppDir() + L"\\LICENSE";
-    if (FileExists(licensePath))
-        OpenFileWithDefaultApp(licensePath);
 }
 
 static bool FindNvidiaAdapter(ComPtr<IDXGIAdapter1>& nvidiaAdapter, DXGI_ADAPTER_DESC1& selectedDesc)
@@ -724,8 +715,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             ShowActiveGpuMessage(hwnd);
         else if (id == ID_CFG_FOLDER)
             OpenConfigFolder();
-        else if (id == ID_LICENSE)
-            OpenLicenseFile();
         else if (id == ID_CHECK_UPDATES)
             ShellExecuteW(nullptr, L"open", L"https://github.com/cafali/GPUKeepAlive/releases", nullptr, nullptr, SW_SHOWNORMAL);
         else if (id == ID_VISIT_GITHUB)
