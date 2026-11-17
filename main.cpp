@@ -596,14 +596,15 @@ static void ShowTrayMenu(HWND hwnd)
         return;
     }
 
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_15, L"15 sec");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_30, L"30 sec");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_60, L"1 min");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_120, L"2 min (default)");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_300, L"5 min");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_600, L"10 min");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_1800, L"30 min");
-    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_3600, L"60 min");
+    const int interval = g_gpuIntervalSeconds.load();
+    AppendMenuW(intervalMenu, MF_STRING | (interval == 15 ? MF_CHECKED : MF_UNCHECKED), ID_INTERVAL_15, L"15 sec");
+    AppendMenuW(intervalMenu, MF_STRING | (interval == 30 ? MF_CHECKED : MF_UNCHECKED), ID_INTERVAL_30, L"30 sec");
+    AppendMenuW(intervalMenu, MF_STRING | (interval == 60 ? MF_CHECKED : MF_UNCHECKED), ID_INTERVAL_60, L"1 min");
+    AppendMenuW(intervalMenu, MF_STRING | (interval == 120 ? MF_CHECKED : MF_UNCHECKED), ID_INTERVAL_120, L"2 min (default)");
+    AppendMenuW(intervalMenu, MF_STRING | (interval == 300 ? MF_CHECKED : MF_UNCHECKED), ID_INTERVAL_300, L"5 min");
+    AppendMenuW(intervalMenu, MF_STRING | (interval == 600 ? MF_CHECKED : MF_UNCHECKED), ID_INTERVAL_600, L"10 min");
+    AppendMenuW(intervalMenu, MF_STRING | (interval == 1800 ? MF_CHECKED : MF_UNCHECKED), ID_INTERVAL_1800, L"30 min");
+    AppendMenuW(intervalMenu, MF_STRING | (interval == 3600 ? MF_CHECKED : MF_UNCHECKED), ID_INTERVAL_3600, L"60 min");
     AppendMenuW(intervalMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_CUSTOM, L"Custom...");
 
