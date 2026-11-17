@@ -42,12 +42,14 @@ if(MSVC)
     target_compile_options(GPUKeepAlive PRIVATE
         /W4
         /permissive-
-        /O2
+        /Od
+        /Zi
         /MT
     )
 
     target_link_options(GPUKeepAlive PRIVATE
         /SUBSYSTEM:WINDOWS
+        /DEBUG
     )
 elseif(MINGW)
     target_link_options(GPUKeepAlive PRIVATE
