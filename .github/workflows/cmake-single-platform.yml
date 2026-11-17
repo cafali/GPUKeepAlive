@@ -68,7 +68,7 @@ jobs:
           $requiredFiles = @(
               "build/Release/GPUKeepAlive.exe",
               "LICENSE",
-              "Uninstall.bat"
+              "uninstall.bat"
           )
 
           foreach ($file in $requiredFiles) {
