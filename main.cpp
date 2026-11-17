@@ -44,6 +44,9 @@ static constexpr UINT ID_INTERVAL_120 = 2103;
 static constexpr UINT ID_INTERVAL_300 = 2104;
 static constexpr UINT ID_INTERVAL_600 = 2105;
 static constexpr UINT ID_INTERVAL_CUSTOM = 2106;
+static constexpr UINT ID_INTERVAL_15 = 2107;
+static constexpr UINT ID_INTERVAL_1800 = 2108;
+static constexpr UINT ID_INTERVAL_3600 = 2109;
 
 static constexpr UINT NVIDIA_VENDOR_ID = 0x10DE;
 static constexpr int DEFAULT_INTERVAL_SECONDS = 120;
@@ -170,7 +173,7 @@ static void EnsureDefaultIntervalConfig()
 
     const std::wstring content =
         L"; GPUKeepAlive refresh interval\n"
-        L"; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.\n"
+        L"; Presets: 15, 30, 60, 120, 300, 600, 1800, 3600 seconds; any positive number is also allowed.\n"
         L"; Default: 120\n"
         L"interval=120\n";
 
@@ -237,7 +240,7 @@ static void SaveIntervalSetting(int seconds)
     const std::wstring path = ConfigPath(L"interval.cfg");
     const std::wstring content =
         L"; GPUKeepAlive refresh interval\n"
-        L"; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.\n"
+        L"; Presets: 15, 30, 60, 120, 300, 600, 1800, 3600 seconds; any positive number is also allowed.\n"
         L"; Default: 120\n"
         L"interval=" + std::to_wstring(static_cast<long long>(safeSeconds)) + L"\n";
 
@@ -436,11 +439,14 @@ static void ShowTrayMenu(HWND hwnd)
         return;
     }
 
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_15, L"15 seconds");
     AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_30, L"30 seconds");
     AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_60, L"1 minute");
     AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_120, L"2 minutes");
     AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_300, L"5 minutes");
     AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_600, L"10 minutes");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_1800, L"30 minutes");
+    AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_3600, L"60 minutes");
     AppendMenuW(intervalMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(intervalMenu, MF_STRING, ID_INTERVAL_CUSTOM, L"Custom...");
 
@@ -753,6 +759,21 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         else if (id == ID_INTERVAL_600)
         {
             SaveIntervalSetting(600);
+            RestartApplication();
+        }
+        else if (id == ID_INTERVAL_15)
+        {
+            SaveIntervalSetting(15);
+            RestartApplication();
+        }
+        else if (id == ID_INTERVAL_1800)
+        {
+            SaveIntervalSetting(1800);
+            RestartApplication();
+        }
+        else if (id == ID_INTERVAL_3600)
+        {
+            SaveIntervalSetting(3600);
             RestartApplication();
         }
         else if (id == ID_INTERVAL_CUSTOM)

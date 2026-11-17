@@ -85,7 +85,8 @@ Startup Setup
 4. The app creates and maintains tray.ini, interval.cfg, and hardware.txt under the
    LocalAppData configuration directory, keeping user settings safe across restarts
    and reboots. The interval is configured as `interval=<seconds>` (for example,
-   `interval=120`).
+   `interval=120`). Preset intervals include 15 and 30 seconds, 1, 2, 5, 10,
+   30, and 60 minutes; custom positive intervals are also supported.
 5. A Task Scheduler logon task is created for the interactive logged-in user
    (not SYSTEM)
 

@@ -23,7 +23,7 @@ if not exist "%LOCALCFG%\tray.ini" (
 
 if not exist "%LOCALCFG%\interval.cfg" (
 	> "%LOCALCFG%\interval.cfg" echo ; GPUKeepAlive refresh interval
-	>> "%LOCALCFG%\interval.cfg" echo ; Supported values: 30, 60, 120, 300, 600, or any positive number of seconds.
+	>> "%LOCALCFG%\interval.cfg" echo ; Presets: 15, 30, 60, 120, 300, 600, 1800, 3600 seconds; any positive number is also allowed.
 	>> "%LOCALCFG%\interval.cfg" echo ; Default: 120
 	>> "%LOCALCFG%\interval.cfg" echo interval=120
 )
