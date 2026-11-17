@@ -406,8 +406,8 @@ static void ShowVersionInfo(HWND hwnd)
         L"GPUKeepAlive\n"
         L"Version " + std::wstring(APP_VERSION) +
         L"\n\nGitHub: github.com/cafali/GPUKeepAlive"
-        L"\nLicense: MIT License"
-        L"\n2026";
+        L"\nMIT License"
+        L"\n\n2026";
     MessageBoxW(hwnd, info.c_str(), L"Version Info", MB_OK);
 }
 
