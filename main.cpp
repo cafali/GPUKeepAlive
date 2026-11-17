@@ -38,7 +38,7 @@ static constexpr UINT ID_HIDE_TRAY = 2008;
 static constexpr UINT ID_RESTART = 2009;
 static constexpr UINT ID_EXIT = 2010;
 static constexpr UINT ID_PAUSE = 2011;
-static constexpr UINT ID_VERSION_INFO = 2009;
+static constexpr UINT ID_VERSION_INFO = 2012;
 
 static constexpr UINT ID_INTERVAL_30 = 2101;
 static constexpr UINT ID_INTERVAL_60 = 2102;
@@ -407,7 +407,7 @@ static void TogglePause()
 
     HICON oldIcon = g_nid.hIcon;
     g_nid.hIcon = icon;
-    wcsncpy_s(g_nid.szTip, paused ? L"GPUKeepAlive - Paused" : L"GPUKeepAlive - NVIDIA active", _TRUNCATE);
+    wcsncpy_s(g_nid.szTip, paused ? L"GPUKeepAlive - Paused" : L"GPUKeepAlive - Active", _TRUNCATE);
     g_nid.uFlags = NIF_ICON | NIF_TIP;
     Shell_NotifyIconW(NIM_MODIFY, &g_nid);
 
@@ -513,7 +513,8 @@ static void ShowTrayMenu(HWND hwnd)
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_CHECK_UPDATES, L"Check Updates");
     AppendMenuW(menu, MF_STRING, ID_VISIT_GITHUB, L"Visit on GitHub");
-    AppendMenuW(menu, MF_STRING, ID_VERSION_INFO, L"Version Info (1.0.3)");
+    const std::wstring versionLabel = L"Version Info (" + std::wstring(APP_VERSION) + L")";
+    AppendMenuW(menu, MF_STRING, ID_VERSION_INFO, versionLabel.c_str());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, ID_HIDE_TRAY, L"Hide Tray Icon");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
@@ -525,6 +526,7 @@ static void ShowTrayMenu(HWND hwnd)
     GetCursorPos(&pt);
     SetForegroundWindow(hwnd);
     TrackPopupMenu(menu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hwnd, nullptr);
+    PostMessageW(hwnd, WM_NULL, 0, 0);
     DestroyMenu(menu);
 }
 
@@ -709,7 +711,7 @@ static bool InitGpu()
 
     g_renderOk.store(true);
     if (g_trayVisible.load() && !g_paused.load())
-        SetStatusTip(L"GPUKeepAlive - NVIDIA active");
+        SetStatusTip(L"GPUKeepAlive - Active");
 
     while (g_running.load())
     {
