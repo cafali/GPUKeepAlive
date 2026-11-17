@@ -173,8 +173,8 @@ static void EnsureDefaultIntervalConfig()
     const std::wstring content =
         L"# GPUKeepAlive refresh interval\n"
         L"# Presets: 15, 30, 60, 120, 300, 600, 1800, 3600 seconds; any positive number is also allowed.\n"
-        L"# Default value: 120\n"
-        L"interval=120\n\n";
+        L"# Default value: 120\n\n"
+        L"interval=120\n";
 
     WriteTextFile(path, content);
 }
@@ -240,8 +240,8 @@ static void SaveIntervalSetting(int seconds)
     const std::wstring content =
         L"# GPUKeepAlive refresh interval\n"
         L"# Presets: 15, 30, 60, 120, 300, 600, 1800, 3600 seconds; any positive number is also allowed.\n"
-        L"# Default value: 120 (2 minutes)\n"
-        L"interval=" + std::to_wstring(static_cast<long long>(safeSeconds)) + L"\n\n";
+        L"# Default value: 120 (2 minutes)\n\n"
+        L"interval=" + std::to_wstring(static_cast<long long>(safeSeconds)) + L"\n";
 
     WriteTextFile(path, content);
     g_gpuIntervalSeconds.store(safeSeconds);
