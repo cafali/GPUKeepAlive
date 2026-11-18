@@ -12,6 +12,17 @@ Direct3D 11 rendering workload every 2 minutes by default (configurable).
 > [!WARNING]
 > This app was primarily designed for use on desktop machines, as it is already quite lightweight and requires as few system resources as possible. However, I cannot guarantee its impact on laptop battery life or power consumption, nor can I guarantee how it will perform on mobile devices.
 
+Download
+-----------------------------------
+
+<p align="center">
+  <a href="https://github.com/cafali/GPUKeepAlive/releases">Download from GitHub</a> |
+  <a href="https://sourceforge.net/projects/GPUKeepAlive/">Download from SourceForge</a>
+</p>
+
+<img width="1881" height="285" alt="1" src="https://github.com/user-attachments/assets/b2d0136d-ccf7-4549-8a0b-1a8cf868f33b" />
+
+
 When to use?
 ------------------------------------
 
@@ -50,16 +61,12 @@ When to use?
 - 🔴 Games and applications crashing to the desktop   
 - 🔴 Artifacting and freezing while gaming due to a driver crash  
 
-
-
 Why GPUKeepAlive?
 ------------------------------------
 GPUKeepAlive is a small Windows background utility. It creates a tiny off-screen
 Direct3D 11 rendering workload every 2 minutes by default (configurable). There is no visible render
 window. The intention is to discourage some GPUs/drivers from entering their
 lowest idle states.
-
-**DOWNLOAD** GPUKeepAlive from GitHub: https://github.com/cafali/GPUKeepAlive/releases
 
 > [!NOTE]
 > This is an experiment/workaround, NOT a repair for a faulty GPU,
