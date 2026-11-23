@@ -56,7 +56,7 @@ static constexpr UINT ID_INTERVAL_3600 = 2109;
 
 static constexpr UINT NVIDIA_VENDOR_ID = 0x10DE;
 static constexpr int DEFAULT_INTERVAL_SECONDS = 120;
-static constexpr wchar_t APP_VERSION[] = L"1.0.4";
+static constexpr wchar_t APP_VERSION[] = L"1.0.5";
 
 static std::atomic<bool> g_running{true};
 static std::atomic<bool> g_renderOk{false};
