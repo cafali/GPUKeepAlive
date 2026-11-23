@@ -75,6 +75,51 @@ static UINT g_taskbarCreatedMsg = 0;
 
 static void RestartApplication();
 
+static LRESULT CALLBACK MessageBoxIconHook(int code, WPARAM wp, LPARAM lp)
+{
+    if (code == HCBT_ACTIVATE)
+    {
+        const HWND hwnd = reinterpret_cast<HWND>(wp);
+        wchar_t className[32]{};
+        if (GetClassNameW(hwnd, className, ARRAYSIZE(className)) && lstrcmpW(className, L"#32770") == 0)
+        {
+            const HINSTANCE instance = GetModuleHandleW(nullptr);
+            const HICON smallIcon = reinterpret_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(IDI_APP),
+                IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_SHARED));
+            const HICON largeIcon = reinterpret_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(IDI_APP),
+                IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_SHARED));
+            if (smallIcon && largeIcon)
+            {
+                SendMessageW(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(smallIcon));
+                SendMessageW(hwnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(largeIcon));
+                const LONG_PTR exStyle = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+                SetLastError(ERROR_SUCCESS);
+                if (!SetWindowLongPtrW(hwnd, GWL_EXSTYLE, exStyle & ~static_cast<LONG_PTR>(WS_EX_DLGMODALFRAME)) &&
+                    GetLastError() != ERROR_SUCCESS)
+                    OutputDebugStringW(L"GPUKeepAlive: could not enable the message box title-bar icon.\n");
+                else if (!SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED))
+                    OutputDebugStringW(L"GPUKeepAlive: could not refresh the message box title bar.\n");
+            }
+            else
+                OutputDebugStringW(L"GPUKeepAlive: could not load the message box title-bar icon.\n");
+        }
+    }
+    return CallNextHookEx(nullptr, code, wp, lp);
+}
+
+static int ShowMessageBox(HWND owner, const wchar_t* text, const wchar_t* caption, UINT type)
+{
+    const HHOOK hook = SetWindowsHookExW(WH_CBT, MessageBoxIconHook, nullptr, GetCurrentThreadId());
+    if (!hook)
+        OutputDebugStringW(L"GPUKeepAlive: could not install the message box icon hook.\n");
+
+    const int result = MessageBoxW(owner, text, caption, type);
+    if (hook && !UnhookWindowsHookEx(hook))
+        OutputDebugStringW(L"GPUKeepAlive: could not remove the message box icon hook.\n");
+    return result;
+}
+
 static std::wstring AppDir()
 {
     wchar_t path[MAX_PATH]{};
@@ -183,7 +228,7 @@ static bool FindSetting(const std::vector<std::string>& lines, const char* key, 
 
 static void ConfigError(const wchar_t* message)
 {
-    MessageBoxW(nullptr, message, L"GPUKeepAlive - Settings Error", MB_OK | MB_ICONERROR);
+    ShowMessageBox(nullptr, message, L"GPUKeepAlive - Settings Error", MB_OK | MB_ICONERROR);
 }
 
 static bool WriteConfigLines(const std::vector<std::string>& lines)
@@ -556,7 +601,7 @@ static void OpenSettingsConfigFile()
 static void ShowActiveGpuMessage(HWND hwnd)
 {
     const std::wstring info = L"GPU: " + g_gpuName + L"\n\nGPUKeepAlive is currently using this GPU.";
-    MessageBoxW(hwnd, info.c_str(), L"Active GPU", MB_OK);
+    ShowMessageBox(hwnd, info.c_str(), L"Active GPU", MB_OK);
 }
 
 static void ShowVersionInfo(HWND hwnd)
@@ -566,7 +611,7 @@ static void ShowVersionInfo(HWND hwnd)
         L"Version " + std::wstring(APP_VERSION) +
         L"\n\nGitHub: github.com/cafali/GPUKeepAlive"
         L"\nMIT License, 2026";
-    MessageBoxW(hwnd, info.c_str(), L"Version Info", MB_OK);
+    ShowMessageBox(hwnd, info.c_str(), L"Version Info", MB_OK);
 }
 
 static void ConfirmHideTrayIcon(HWND hwnd)
@@ -574,7 +619,7 @@ static void ConfirmHideTrayIcon(HWND hwnd)
     if (!IsTrayIconVisible())
         return;
 
-    const int answer = MessageBoxW(
+    const int answer = ShowMessageBox(
         hwnd,
         L"This will hide the GPUKeepAlive system tray icon until it is re-enabled.\n\nSelect Yes to hide or No to cancel.",
         L"Hide tray icon?",
@@ -595,7 +640,7 @@ static void ShowTrayMenu(HWND hwnd)
         if (menu) DestroyMenu(menu);
         if (intervalMenu) DestroyMenu(intervalMenu);
         if (appMenu) DestroyMenu(appMenu);
-        MessageBoxW(hwnd, L"Could not create the tray menu.", L"GPUKeepAlive - Error", MB_OK | MB_ICONERROR);
+        ShowMessageBox(hwnd, L"Could not create the tray menu.", L"GPUKeepAlive - Error", MB_OK | MB_ICONERROR);
         return;
     }
 
@@ -1033,7 +1078,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
             g_renderOk.store(false);
             if (g_running.load() && g_hwnd)
             {
-                MessageBoxW(g_hwnd,
+                ShowMessageBox(g_hwnd,
                     L"NVIDIA GPU initialization failed.\n\nNo NVIDIA GPU was selected or Direct3D 11 initialization failed.\n\nCheck your NVIDIA driver.",
                     L"GPUKeepAlive - Error",
                     MB_ICONWARNING | MB_OK);
