@@ -21,7 +21,8 @@ Download
   <a href="https://sourceforge.net/projects/GPUKeepAlive/">Download from SourceForge</a>
 </p>
 
-<img width="1881" height="285" alt="1" src="https://github.com/user-attachments/assets/b2d0136d-ccf7-4549-8a0b-1a8cf868f33b" />
+<img width="1881" height="285" alt="download" src="https://github.com/user-attachments/assets/cd9ff668-17eb-4115-8c96-8c979398f9ca" />
+
 
 
 When to use?
