@@ -121,6 +121,11 @@ You can also run the "GPUKeepAlive" Task Scheduler entry manually to start it im
 
 <img width="1972" height="371" alt="image" src="https://github.com/user-attachments/assets/61593005-dd26-4def-9c35-caa2290a55c8" />
 
+
+```
+Note: May differ from the current version
+```
+
 Preview
 ------------------------------------
 
@@ -132,7 +137,9 @@ https://github.com/user-attachments/assets/ccce1e45-08c3-4b35-9b23-4e68e4f69af2
 
 
 
-
+```
+Note: May differ from the current version
+```
 
 
 set_gpukeepalive.ini
